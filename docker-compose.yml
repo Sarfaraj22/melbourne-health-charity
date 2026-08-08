@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: melbourne-health-charity:latest
+    container_name: melbourne-health-charity
+    ports:
+      - '8080:8080'
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
