@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppLogo from '@/components/ui/AppLogo.vue'
 
@@ -17,6 +18,7 @@ const navLinks: readonly NavLink[] = [
   { label: 'Contact', to: '/contact' },
 ]
 
+const route = useRoute()
 const isMenuOpen = ref(false)
 
 function toggleMenu(): void {
@@ -25,6 +27,13 @@ function toggleMenu(): void {
 
 function closeMenu(): void {
   isMenuOpen.value = false
+}
+
+function isNavActive(link: NavLink): boolean {
+  if (link.to === '/') {
+    return route.path === '/'
+  }
+  return route.path === link.to || route.path.startsWith(`${link.to}/`)
 }
 </script>
 
@@ -49,7 +58,10 @@ function closeMenu(): void {
           <li v-for="link in navLinks" :key="link.to">
             <router-link
               :to="link.to"
-              class="text-base font-medium text-text-default hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              :class="[
+                'text-base font-medium hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary',
+                isNavActive(link) ? 'text-brand-primary' : 'text-text-default',
+              ]"
             >
               {{ link.label }}
             </router-link>
@@ -79,7 +91,10 @@ function closeMenu(): void {
         <li v-for="link in navLinks" :key="link.to">
           <router-link
             :to="link.to"
-            class="block rounded px-3 py-2.5 text-base font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            :class="[
+              'block rounded px-3 py-2.5 text-base font-medium hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary',
+              isNavActive(link) ? 'text-brand-primary' : 'text-text-default',
+            ]"
             @click="closeMenu"
           >
             {{ link.label }}

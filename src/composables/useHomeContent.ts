@@ -36,13 +36,13 @@ const quickAccess: readonly QuickAccessItem[] = [
   {
     id: 'disability-support',
     label: 'Disability Support',
-    to: '/services',
+    to: '/services/disability-support-services',
     icon: accessibilityIcon,
   },
   {
     id: 'mental-health',
     label: 'Mental Health',
-    to: '/services',
+    to: '/services/mental-health-support',
     icon: brainIcon,
   },
   {
