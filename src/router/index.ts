@@ -9,7 +9,36 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/HomeView.vue'),
   },
   { path: '/about', name: 'about', component: Placeholder, meta: { title: 'About Us' } },
-  { path: '/services', name: 'services', component: Placeholder, meta: { title: 'Services' } },
+  {
+    path: '/services',
+    name: 'services',
+    component: () => import('@/views/ServicesIndexView.vue'),
+    meta: { title: 'Services' },
+  },
+  {
+    path: '/services/:categorySlug/:subServiceSlug',
+    name: 'service-sub-detail',
+    component: () => import('@/views/ServiceDetailView.vue'),
+    props: (route) => {
+      const categorySlug = route.params['categorySlug']
+      const subServiceSlug = route.params['subServiceSlug']
+      return {
+        categorySlug: typeof categorySlug === 'string' ? categorySlug : '',
+        subServiceSlug: typeof subServiceSlug === 'string' ? subServiceSlug : '',
+      }
+    },
+    meta: { title: 'Service Detail' },
+  },
+  {
+    path: '/services/:categorySlug',
+    name: 'service-category',
+    component: () => import('@/views/ServiceCategoryView.vue'),
+    props: (route) => {
+      const categorySlug = route.params['categorySlug']
+      return { categorySlug: typeof categorySlug === 'string' ? categorySlug : '' }
+    },
+    meta: { title: 'Service Detail' },
+  },
   { path: '/resources', name: 'resources', component: Placeholder, meta: { title: 'Resources' } },
   {
     path: '/get-support',

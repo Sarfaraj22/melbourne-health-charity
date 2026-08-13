@@ -19,7 +19,22 @@ const cardFiles = [
   'news-transport',
   'news-volunteer',
   'news-ndis-review',
+  'service-disability',
+  'service-mental-health',
+  'service-community',
+  'service-health-wellbeing',
+  'service-ndis-information',
+  'service-eligibility-checker',
 ]
+
+/** Basenames that are genuine source originals — not generated width variants. */
+const allowedRawNames = new Set([HERO, ...cardFiles])
+
+function isSourceOriginal(filename) {
+  if (!filename.endsWith('.jpg')) return false
+  const baseName = filename.slice(0, -4)
+  return allowedRawNames.has(baseName)
+}
 
 async function exists(path) {
   try {
@@ -32,9 +47,18 @@ async function exists(path) {
 
 async function ensureRawSources() {
   await mkdir(RAW_DIR, { recursive: true })
+
+  // Remove derivative outputs that were incorrectly archived into raw/.
+  const rawEntries = await readdir(RAW_DIR)
+  for (const entry of rawEntries) {
+    if (!isSourceOriginal(entry)) {
+      await rm(join(RAW_DIR, entry))
+    }
+  }
+
   const topLevel = await readdir(IMAGES_DIR)
   for (const entry of topLevel) {
-    if (!entry.endsWith('.jpg')) continue
+    if (!isSourceOriginal(entry)) continue
     const from = join(IMAGES_DIR, entry)
     const to = join(RAW_DIR, entry)
     if (await exists(to)) {
