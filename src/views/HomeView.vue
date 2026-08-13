@@ -1,9 +1,19 @@
 <script setup lang="ts">
-//
+import HeroSection from '@/components/home/HeroSection.vue'
+import SearchSection from '@/components/home/SearchSection.vue'
+import QuickAccessSection from '@/components/home/QuickAccessSection.vue'
+import EventsSection from '@/components/home/EventsSection.vue'
+import NewsSection from '@/components/home/NewsSection.vue'
+import NewsletterSection from '@/components/home/NewsletterSection.vue'
 </script>
 
 <template>
-  <main class="flex min-h-screen items-center justify-center bg-surface-muted">
-    <h1 class="text-2xl font-semibold text-brand-primary">It works.</h1>
-  </main>
+  <div>
+    <HeroSection />
+    <SearchSection />
+    <QuickAccessSection />
+    <EventsSection />
+    <NewsSection />
+    <NewsletterSection />
+  </div>
 </template>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Melbourne Health" viewBox="0 0 380 64" width="380" height="64">
+  <text x="0" y="47" font-family="Inter, 'Inter Variable', system-ui, sans-serif" font-size="44" font-weight="700" letter-spacing="-1">
+    <tspan fill="#1e40af">Melbourne</tspan>
+    <tspan fill="#0d9488" dx="14">Health</tspan>
+  </text>
+</svg>
