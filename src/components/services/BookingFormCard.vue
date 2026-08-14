@@ -16,6 +16,7 @@ const {
   errors,
   isSubmitted,
   isSubmitting,
+  setName,
   setDate,
   setTime,
   setSupportType,
@@ -35,11 +36,15 @@ const transportOptions: readonly { readonly value: TransportRequired; readonly l
   { value: 'no', label: 'No' },
 ]
 
+const nameErrorId = 'booking-name-error'
 const dateErrorId = 'booking-date-error'
 const timeErrorId = 'booking-time-error'
 const supportTypeErrorId = 'booking-support-type-error'
 const successMessageId = 'booking-success-message'
 
+const nameDescribedBy = computed((): string | undefined =>
+  errors.value.name ? nameErrorId : undefined,
+)
 const dateDescribedBy = computed((): string | undefined =>
   errors.value.date ? dateErrorId : undefined,
 )
@@ -53,6 +58,13 @@ const supportTypeDescribedBy = computed((): string | undefined =>
 function handleSubmit(event: Event): void {
   event.preventDefault()
   submit()
+}
+
+function handleNameInput(event: Event): void {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    setName(target.value)
+  }
 }
 
 function handleDateInput(event: Event): void {
@@ -105,6 +117,23 @@ function handleAccessibilityInput(event: Event): void {
     </p>
 
     <form v-else class="mt-4 flex flex-col gap-4" novalidate @submit="handleSubmit">
+      <div class="flex flex-col gap-1.5">
+        <label for="booking-name" class="text-xs font-medium text-text-subtle">Name</label>
+        <input
+          id="booking-name"
+          type="text"
+          autocomplete="name"
+          :value="form.name"
+          :aria-invalid="errors.name ? true : undefined"
+          :aria-describedby="nameDescribedBy"
+          class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          @input="handleNameInput"
+        />
+        <p v-if="errors.name" :id="nameErrorId" class="text-xs text-brand-accent" role="alert">
+          {{ errors.name }}
+        </p>
+      </div>
+
       <div class="flex flex-col gap-1.5">
         <label for="booking-date" class="text-xs font-medium text-text-subtle">Date</label>
         <input

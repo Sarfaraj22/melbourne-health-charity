@@ -11,6 +11,7 @@ export interface UseBookingFormReturn {
   readonly errors: Ref<BookingFormErrors>
   readonly isSubmitted: Ref<boolean>
   readonly isSubmitting: Ref<boolean>
+  setName: (value: string) => void
   setDate: (value: string) => void
   setTime: (value: string) => void
   setSupportType: (value: SupportType) => void
@@ -21,6 +22,7 @@ export interface UseBookingFormReturn {
 }
 
 const initialFormState = (): BookingFormState => ({
+  name: '',
   date: '',
   time: '',
   supportType: '',
@@ -30,6 +32,10 @@ const initialFormState = (): BookingFormState => ({
 
 function validateForm(state: BookingFormState): BookingFormErrors {
   const errors: BookingFormErrors = {}
+
+  if (!state.name.trim()) {
+    errors.name = 'Please enter your name.'
+  }
 
   if (!state.date) {
     errors.date = 'Please select a date for your appointment.'
@@ -51,6 +57,13 @@ export function useBookingForm(): UseBookingFormReturn {
   const errors = ref<BookingFormErrors>({})
   const isSubmitted = ref(false)
   const isSubmitting = ref(false)
+
+  function setName(value: string): void {
+    form.value = { ...form.value, name: value }
+    const next = { ...errors.value }
+    delete next.name
+    errors.value = next
+  }
 
   function setDate(value: string): void {
     form.value = { ...form.value, date: value }
@@ -108,6 +121,7 @@ export function useBookingForm(): UseBookingFormReturn {
     errors,
     isSubmitted,
     isSubmitting,
+    setName,
     setDate,
     setTime,
     setSupportType,
