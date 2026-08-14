@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <picture>
+  <picture class="block h-full w-full">
     <source
       type="image/webp"
       :srcset="`${props.imageSmall} 400w, ${props.image} 800w`"

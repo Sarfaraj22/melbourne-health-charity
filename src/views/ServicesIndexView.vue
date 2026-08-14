@@ -44,11 +44,15 @@ const regularCategories = computed(() =>
               class-name="h-56 w-full object-cover lg:h-full"
               sizes="(min-width: 1024px) 50vw, 100vw"
             />
-            <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
-              <p class="text-xs font-medium uppercase tracking-wide text-brand-accent">Featured</p>
-              <h2 class="text-2xl font-bold text-text-default">{{ featured.title }}</h2>
-              <p class="text-base text-text-muted">{{ featured.summary }}</p>
-              <AppButton :to="`/services/${featured.slug}`" variant="primary">
+            <div class="flex flex-col gap-4 p-6 sm:p-8">
+              <div class="flex flex-col gap-4">
+                <p class="text-xs font-medium uppercase tracking-wide text-brand-accent">
+                  Featured
+                </p>
+                <h2 class="text-2xl font-bold text-text-default">{{ featured.title }}</h2>
+                <p class="text-base text-text-muted">{{ featured.summary }}</p>
+              </div>
+              <AppButton :to="`/services/${featured.slug}`" variant="primary" class="self-start">
                 View service &amp; book
               </AppButton>
             </div>
