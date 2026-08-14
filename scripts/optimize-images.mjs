@@ -37,6 +37,14 @@ const cardFiles = [
   'resource-health-wellbeing',
   'resource-community-outreach',
   'resource-advocacy',
+  'volunteer-hero',
+  'volunteer-become',
+  'volunteer-event-fun-run',
+  'volunteer-event-training',
+  'volunteer-event-gala',
+  'volunteer-training-first-aid',
+  'volunteer-training-online',
+  'volunteer-training-inclusion',
 ]
 
 /** Basenames that are genuine source originals — not generated width variants. */
