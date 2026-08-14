@@ -18,6 +18,10 @@ export default {
         'text-on-brand': '#ffffff',
         'border-default': '#e2e8f0',
         'border-strong': '#cbd5e1',
+        'status-success': '#15803d',
+        'status-success-bg': '#f0fdf4',
+        'status-caution': '#b45309',
+        'status-caution-bg': '#fffbeb',
       },
       fontFamily: {
         sans: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],

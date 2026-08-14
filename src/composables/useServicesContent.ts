@@ -59,6 +59,7 @@ const disabilitySubServices: readonly ServiceDetail[] = [
     cost: 'Free for NDIS plan holders. Sliding-scale fee for others.',
     availability: 'Monday to Friday, 9:00am - 5:00pm',
     icon: stethoscopeIcon,
+    variant: 'booking',
   },
   {
     slug: 'physiotherapy',
@@ -74,6 +75,7 @@ const disabilitySubServices: readonly ServiceDetail[] = [
     cost: 'NDIS-funded for eligible participants. Private health and Medicare rebates may apply.',
     availability: 'Monday to Friday, 8:00am - 6:00pm',
     icon: activityIcon,
+    variant: 'booking',
   },
   {
     slug: 'support-coordination',
@@ -87,6 +89,7 @@ const disabilitySubServices: readonly ServiceDetail[] = [
     cost: 'Fully funded through NDIS plan — no out-of-pocket cost for eligible participants.',
     availability: 'Monday to Friday, 9:00am - 5:00pm',
     icon: clipboardListIcon,
+    variant: 'booking',
   },
 ]
 
@@ -104,6 +107,7 @@ const mentalHealthSubServices: readonly ServiceDetail[] = [
     cost: 'Free for NDIS plan holders. Bulk-billing available for eligible Medicare clients.',
     availability: 'Monday to Friday, 9:00am - 7:00pm',
     icon: handHeartIcon,
+    variant: 'booking',
   },
   {
     slug: 'peer-support-groups',
@@ -118,6 +122,7 @@ const mentalHealthSubServices: readonly ServiceDetail[] = [
     cost: 'Free for all participants. NDIS plan holders may claim under Capacity Building.',
     availability: 'Weekly groups; see Events for the current timetable',
     icon: usersRoundIcon,
+    variant: 'booking',
   },
   {
     slug: 'family-carer-counselling',
@@ -131,6 +136,7 @@ const mentalHealthSubServices: readonly ServiceDetail[] = [
     cost: 'Free for NDIS plan holders (where carer supports are funded). Medicare rebates may apply.',
     availability: 'Monday to Friday, 9:00am - 5:00pm',
     icon: heartHandshakeIcon,
+    variant: 'booking',
   },
 ]
 
@@ -197,6 +203,7 @@ const categories: readonly ServiceCategory[] = [
       cost: 'Free for NDIS plan holders. Community programs from $10 per session.',
       availability: 'Weekly group sessions; see Events for the current timetable',
       icon: heartPulseIcon,
+      variant: 'info',
     },
   },
   {
@@ -227,6 +234,7 @@ const categories: readonly ServiceCategory[] = [
       availability:
         'Monday to Friday, 9:00am - 5:00pm; drop-in sessions Wednesday 10:00am - 2:00pm',
       icon: fileTextIcon,
+      variant: 'info',
     },
   },
   {
@@ -258,6 +266,7 @@ const categories: readonly ServiceCategory[] = [
       cost: 'Most programs are free. Some events may have a small materials fee.',
       availability: 'Programs run throughout the week; see Events for upcoming activities',
       icon: usersIcon,
+      variant: 'info',
     },
   },
   {
@@ -288,6 +297,7 @@ const categories: readonly ServiceCategory[] = [
       cost: 'Free',
       availability: 'Available online 24/7; in-person support Monday to Friday, 9:00am - 5:00pm',
       icon: clipboardCheckIcon,
+      variant: 'eligibility-checker',
     },
   },
 ]

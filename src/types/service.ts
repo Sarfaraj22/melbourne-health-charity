@@ -6,6 +6,8 @@ export interface ServiceImageSet {
   readonly imageAlt: string
 }
 
+export type ServiceDetailVariant = 'booking' | 'info' | 'eligibility-checker'
+
 export interface ServiceDetail {
   readonly slug: string
   readonly title: string
@@ -16,6 +18,7 @@ export interface ServiceDetail {
   readonly cost: string
   readonly availability: string
   readonly icon: string
+  readonly variant: ServiceDetailVariant
 }
 
 interface ServiceCategoryBase {
@@ -53,6 +56,7 @@ export type SupportType = 'in-person' | 'telehealth' | 'phone'
 export type TransportRequired = 'yes' | 'no'
 
 export interface BookingFormState {
+  readonly name: string
   readonly date: string
   readonly time: string
   readonly supportType: SupportType | ''
@@ -61,6 +65,7 @@ export interface BookingFormState {
 }
 
 export interface BookingFormErrors {
+  readonly name?: string
   readonly date?: string
   readonly time?: string
   readonly supportType?: string
@@ -69,4 +74,24 @@ export interface BookingFormErrors {
 export interface ServicesContent {
   readonly categories: readonly ServiceCategory[]
   readonly supportChannels: readonly SupportChannel[]
+}
+
+export interface EligibilityOption {
+  readonly value: string
+  readonly label: string
+}
+
+export interface EligibilityQuestion {
+  readonly id: string
+  readonly question: string
+  readonly helpText?: string
+  readonly options: readonly EligibilityOption[]
+}
+
+export type EligibilityOutcomeTone = 'positive' | 'caution' | 'neutral'
+
+export interface EligibilityOutcome {
+  readonly tone: EligibilityOutcomeTone
+  readonly heading: string
+  readonly message: string
 }
