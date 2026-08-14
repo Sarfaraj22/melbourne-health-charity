@@ -25,6 +25,18 @@ const cardFiles = [
   'service-health-wellbeing',
   'service-ndis-information',
   'service-eligibility-checker',
+  'resource-ndis-plans',
+  'resource-mental-health',
+  'resource-carers',
+  'resource-home-modifications',
+  'resource-auslan',
+  'resource-easy-read-rights',
+  'resource-support-coordination',
+  'resource-peer-support',
+  'resource-accessible-transport',
+  'resource-health-wellbeing',
+  'resource-community-outreach',
+  'resource-advocacy',
 ]
 
 /** Basenames that are genuine source originals — not generated width variants. */
