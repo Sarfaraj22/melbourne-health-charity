@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ServiceDetail } from '@/types/service'
 
 interface Props {
   readonly service: ServiceDetail
+  readonly heading?: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const headingText = computed((): string => props.heading ?? 'Service Information')
 
 interface InfoRow {
   readonly label: string
@@ -26,7 +30,7 @@ function buildRows(service: ServiceDetail): readonly InfoRow[] {
 <template>
   <section aria-labelledby="service-info-heading" class="flex flex-col gap-5">
     <h2 id="service-info-heading" class="text-2xl font-bold text-text-default">
-      Service Information
+      {{ headingText }}
     </h2>
     <dl class="flex flex-col">
       <div
