@@ -39,7 +39,12 @@ const routes: RouteRecordRaw[] = [
     },
     meta: { title: 'Service Detail' },
   },
-  { path: '/resources', name: 'resources', component: Placeholder, meta: { title: 'Resources' } },
+  {
+    path: '/resources',
+    name: 'resources',
+    component: () => import('@/views/ResourcesView.vue'),
+    meta: { title: 'Resources' },
+  },
   {
     path: '/get-support',
     name: 'get-support',
