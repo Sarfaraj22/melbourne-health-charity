@@ -6,6 +6,7 @@ import ServiceInfoGrid from '@/components/services/ServiceInfoGrid.vue'
 import BookingFormCard from '@/components/services/BookingFormCard.vue'
 import EligibilityCheckerCard from '@/components/services/EligibilityCheckerCard.vue'
 import NeedHelpSection from '@/components/services/NeedHelpSection.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import type { BreadcrumbItem, ServiceDetail } from '@/types/service'
 
 interface Props {
@@ -18,6 +19,8 @@ const props = defineProps<Props>()
 const infoSectionHeading = computed((): string | undefined =>
   props.detail.variant === 'eligibility-checker' ? 'Eligibility Checker' : undefined,
 )
+
+const activities = computed((): readonly string[] => props.detail.activities ?? [])
 </script>
 
 <template>
@@ -25,10 +28,24 @@ const infoSectionHeading = computed((): string | undefined =>
     <ServiceBreadcrumb :crumbs="crumbs" />
 
     <div class="mx-auto max-w-container px-5 py-12 sm:px-8">
-      <h1 v-if="detail.variant !== 'info'" class="sr-only">{{ detail.title }}</h1>
-
-      <div v-if="detail.variant === 'info'" class="min-w-0">
+      <div v-if="detail.variant === 'info'" class="flex min-w-0 flex-col gap-10">
         <ServiceInfoGrid :service="detail" />
+
+        <section
+          v-if="activities.length > 0"
+          aria-labelledby="service-activities-heading"
+          class="flex flex-col gap-5"
+        >
+          <h2 id="service-activities-heading" class="text-2xl font-bold text-text-default">
+            Activities
+          </h2>
+          <ul class="flex list-disc flex-col gap-2 pl-5 text-base text-text-default">
+            <li v-for="activity in activities" :key="activity">{{ activity }}</li>
+          </ul>
+          <AppButton to="/events" variant="secondary" class="self-start">
+            See upcoming events
+          </AppButton>
+        </section>
       </div>
 
       <div v-else class="grid grid-cols-1 gap-10 lg:flex lg:items-start lg:gap-10">

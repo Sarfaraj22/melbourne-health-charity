@@ -205,6 +205,12 @@ const categories: readonly ServiceCategory[] = [
       availability: 'Weekly group sessions; see Events for the current timetable',
       icon: heartPulseIcon,
       variant: 'info',
+      activities: [
+        'Adapted group fitness classes',
+        'Nutrition workshops',
+        'Mindfulness and relaxation sessions',
+        'Inclusive sports and movement',
+      ],
     },
   },
   {
@@ -227,7 +233,7 @@ const categories: readonly ServiceCategory[] = [
       summary:
         'Guidance on navigating the NDIS — from access requests to plan reviews and appeals.',
       description:
-        'Our NDIS information service helps you understand eligibility, prepare access requests, navigate plan reviews, and connect with the right supports under your funding.',
+        'Our NDIS information service walks you through every stage of the scheme: checking eligibility, preparing access requests, understanding plan budgets, preparing for plan reviews, and navigating appeals. You can book a one-to-one appointment with an NDIS counsellor who will explain your options in plain language and help you take the next step with confidence.',
       eligibility:
         'Available to anyone exploring NDIS access, current participants, and their carers and families.',
       location: '123 Example Street, Melbourne VIC 3000; phone and video sessions statewide',
@@ -235,7 +241,7 @@ const categories: readonly ServiceCategory[] = [
       availability:
         'Monday to Friday, 9:00am - 5:00pm; drop-in sessions Wednesday 10:00am - 2:00pm',
       icon: fileTextIcon,
-      variant: 'info',
+      variant: 'booking',
     },
   },
   {
@@ -268,6 +274,12 @@ const categories: readonly ServiceCategory[] = [
       availability: 'Programs run throughout the week; see Events for upcoming activities',
       icon: usersIcon,
       variant: 'info',
+      activities: [
+        'Community morning teas',
+        'Neighbourhood outreach visits',
+        'Accessible arts workshops',
+        'Community fun run and social activities',
+      ],
     },
   },
   {
