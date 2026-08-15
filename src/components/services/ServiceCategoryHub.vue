@@ -2,7 +2,7 @@
 import AppIcon from '@/components/ui/AppIcon.vue'
 import ServiceBreadcrumb from '@/components/services/ServiceBreadcrumb.vue'
 import ServiceCategoryCard from '@/components/services/ServiceCategoryCard.vue'
-import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
+import PageHero from '@/components/ui/PageHero.vue'
 import type { BreadcrumbItem, ServiceCategory } from '@/types/service'
 
 interface Props {
@@ -17,36 +17,19 @@ defineProps<Props>()
   <div class="bg-surface">
     <ServiceBreadcrumb :crumbs="crumbs" />
 
-    <section aria-labelledby="category-heading" class="mx-auto max-w-container px-5 py-14 sm:px-8">
-      <article
-        v-if="category.images"
-        class="mb-10 overflow-hidden rounded-lg border border-border-default bg-surface shadow-card"
-      >
-        <div class="grid grid-cols-1 lg:grid-cols-2">
-          <ResponsiveImage
-            :image="category.images.image"
-            :image-jpg="category.images.imageJpg"
-            :image-small="category.images.imageSmall"
-            :image-small-jpg="category.images.imageSmallJpg"
-            :alt="category.images.imageAlt"
-            class-name="h-56 w-full object-cover lg:h-full"
-            sizes="(min-width: 1024px) 50vw, 100vw"
-          />
-          <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
-            <span
-              class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
-            >
-              <AppIcon :svg="category.icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
-            </span>
-            <h1 id="category-heading" class="text-3xl font-bold text-text-default sm:text-4xl">
-              {{ category.title }}
-            </h1>
-            <p class="text-base text-text-muted">{{ category.summary }}</p>
-          </div>
-        </div>
-      </article>
+    <PageHero
+      v-if="category.images"
+      heading-id="category-heading"
+      :heading="category.title"
+      :intro="category.summary"
+      :image="category.images"
+    />
 
-      <div v-else class="mb-10 flex flex-col gap-3">
+    <section
+      aria-labelledby="available-services-heading"
+      class="mx-auto max-w-container px-5 py-14 sm:px-8"
+    >
+      <div v-if="!category.images" class="mb-10 flex flex-col gap-3">
         <span
           class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
         >
@@ -58,7 +41,9 @@ defineProps<Props>()
         <p class="max-w-2xl text-base text-text-muted">{{ category.summary }}</p>
       </div>
 
-      <h2 class="mb-6 text-2xl font-bold text-text-default">Available Services</h2>
+      <h2 id="available-services-heading" class="mb-6 text-2xl font-bold text-text-default">
+        Available Services
+      </h2>
       <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <li v-for="subService in category.subServices" :key="subService.slug">
           <ServiceCategoryCard
