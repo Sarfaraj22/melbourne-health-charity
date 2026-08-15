@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { BreadcrumbItem } from '@/types/service'
+import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import ResourceSearchHero from '@/components/resources/ResourceSearchHero.vue'
 import ResourceFilterSidebar from '@/components/resources/ResourceFilterSidebar.vue'
 import ResourceGrid from '@/components/resources/ResourceGrid.vue'
@@ -8,6 +10,8 @@ import AppButton from '@/components/ui/AppButton.vue'
 import { useResourcesContent } from '@/composables/useResourcesContent'
 import { useResourceExplorer } from '@/composables/useResourceExplorer'
 import { useSavedResourcesStore } from '@/stores/savedResources.store'
+
+const crumbs: readonly BreadcrumbItem[] = [{ label: 'Home', to: '/' }, { label: 'Resources' }]
 
 const { filterGroups } = useResourcesContent()
 const savedStore = useSavedResourcesStore()
@@ -37,6 +41,7 @@ function onToggleSave(id: string): void {
 
 <template>
   <div class="bg-surface">
+    <AppBreadcrumb :crumbs="crumbs" />
     <ResourceSearchHero
       :model-value="searchQuery"
       :saved-count="savedCount"
