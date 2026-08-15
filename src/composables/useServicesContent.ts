@@ -1,4 +1,5 @@
 import type {
+  BookableServiceOption,
   ServiceCategory,
   ServiceDetail,
   ServicesContent,
@@ -325,6 +326,27 @@ const supportChannels: readonly SupportChannel[] = [
     href: 'mailto:support@healthcharity.org.au',
   },
 ]
+
+export function getBookableServices(): readonly BookableServiceOption[] {
+  const options: BookableServiceOption[] = []
+
+  for (const category of categories) {
+    if (category.kind === 'group') {
+      for (const subService of category.subServices) {
+        if (subService.variant === 'booking') {
+          options.push({ slug: subService.slug, title: subService.title })
+        }
+      }
+      continue
+    }
+
+    if (category.detail.variant === 'booking') {
+      options.push({ slug: category.detail.slug, title: category.detail.title })
+    }
+  }
+
+  return options
+}
 
 export function getCategoryBySlug(slug: string): ServiceCategory | undefined {
   return categories.find((category) => category.slug === slug)

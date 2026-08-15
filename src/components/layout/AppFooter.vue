@@ -14,17 +14,21 @@ interface FooterLink {
 
 const quickLinks: readonly FooterLink[] = [
   { label: 'Home', to: '/' },
+  { label: 'About', to: '/about' },
   { label: 'Services', to: '/services' },
   { label: 'Resources', to: '/resources' },
   { label: 'Events', to: '/events' },
+  { label: 'Community', to: '/community' },
+  { label: 'Get Support', to: '/get-support' },
   { label: 'Donate', to: '/donate' },
   { label: 'Volunteer', to: '/volunteer' },
 ]
 
 const legalLinks: readonly FooterLink[] = [
-  { label: 'Accessibility Statement', to: '/legal' },
-  { label: 'Privacy Policy', to: '/legal' },
-  { label: 'Terms of Use', to: '/legal' },
+  { label: 'Accessibility Statement', to: '/accessibility-statement' },
+  { label: 'Privacy Policy', to: '/privacy-policy' },
+  { label: 'Terms of Use', to: '/terms-of-use' },
+  { label: 'Cookie Policy', to: '/cookie-policy' },
 ]
 
 const contactDetails: readonly string[] = [

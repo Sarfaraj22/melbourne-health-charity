@@ -11,10 +11,13 @@ interface NavLink {
 
 const navLinks: readonly NavLink[] = [
   { label: 'Home', to: '/' },
+  { label: 'About', to: '/about' },
   { label: 'Services', to: '/services' },
   { label: 'Resources', to: '/resources' },
   { label: 'Events', to: '/events' },
+  { label: 'Community', to: '/community' },
   { label: 'Volunteer', to: '/volunteer' },
+  { label: 'Donate', to: '/donate' },
   { label: 'Contact', to: '/contact' },
 ]
 
@@ -40,8 +43,10 @@ function isNavActive(link: NavLink): boolean {
 <template>
   <header class="sticky top-0 z-40 border-b border-border-default bg-surface">
     <!-- Top bar: logo + mobile menu toggle (mobile) / logo + nav + actions (desktop) -->
-    <div class="mx-auto flex max-w-container items-center justify-between px-5 py-4 sm:px-8">
-      <AppLogo size="md" @click="closeMenu" />
+    <div
+      class="mx-auto flex max-w-container items-center justify-between gap-5 px-5 py-4 sm:px-8 lg:gap-8"
+    >
+      <AppLogo size="md" class="shrink-0" @click="closeMenu" />
 
       <button
         type="button"
@@ -53,8 +58,12 @@ function isNavActive(link: NavLink): boolean {
         {{ isMenuOpen ? 'Close' : 'Menu' }}
       </button>
 
-      <nav id="primary-nav" aria-label="Primary" class="hidden md:flex md:items-center md:gap-8">
-        <ul class="flex flex-row items-center gap-8">
+      <nav
+        id="primary-nav"
+        aria-label="Primary"
+        class="hidden md:flex md:items-center md:gap-5 lg:gap-8"
+      >
+        <ul class="flex flex-row items-center gap-5 lg:gap-8">
           <li v-for="link in navLinks" :key="link.to">
             <router-link
               :to="link.to"
@@ -69,7 +78,7 @@ function isNavActive(link: NavLink): boolean {
         </ul>
       </nav>
 
-      <div class="hidden items-center gap-5 md:flex">
+      <div class="hidden shrink-0 items-center gap-5 md:flex">
         <router-link
           to="/login"
           class="flex items-center gap-1.5 text-base font-medium text-text-default hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
@@ -77,7 +86,14 @@ function isNavActive(link: NavLink): boolean {
           <span aria-hidden="true">👤</span>
           Login
         </router-link>
-        <AppButton variant="accent" to="/donate">Donate</AppButton>
+        <AppButton
+          variant="donate"
+          size="sm"
+          to="/donate/make-a-donation"
+          class="shrink-0 whitespace-nowrap"
+        >
+          Make a donation
+        </AppButton>
       </div>
     </div>
 
@@ -110,8 +126,14 @@ function isNavActive(link: NavLink): boolean {
         >
           Login
         </router-link>
-        <AppButton variant="accent" to="/donate" class="w-full" @click="closeMenu">
-          Donate
+        <AppButton
+          variant="donate"
+          size="sm"
+          to="/donate/make-a-donation"
+          class="w-full whitespace-nowrap"
+          @click="closeMenu"
+        >
+          Make a donation
         </AppButton>
       </div>
     </nav>

@@ -2,14 +2,17 @@
 import { computed } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import { useBookingForm } from '@/composables/useBookingForm'
+import { getBookableServices } from '@/composables/useServicesContent'
 import type { SupportType, TransportRequired } from '@/types/service'
 import lockIcon from '@/assets/icons/lock.svg?raw'
 
 interface Props {
-  readonly serviceTitle: string
+  readonly initialServiceSlug: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const bookableServices = getBookableServices()
 
 const {
   form,
@@ -19,11 +22,12 @@ const {
   setName,
   setDate,
   setTime,
+  setServiceSlug,
   setSupportType,
   setAccessibilityRequirements,
   setTransportRequired,
   submit,
-} = useBookingForm()
+} = useBookingForm(props.initialServiceSlug)
 
 const supportTypeOptions: readonly { readonly value: SupportType; readonly label: string }[] = [
   { value: 'in-person', label: 'In-person' },
@@ -39,6 +43,7 @@ const transportOptions: readonly { readonly value: TransportRequired; readonly l
 const nameErrorId = 'booking-name-error'
 const dateErrorId = 'booking-date-error'
 const timeErrorId = 'booking-time-error'
+const serviceErrorId = 'booking-service-error'
 const supportTypeErrorId = 'booking-support-type-error'
 const successMessageId = 'booking-success-message'
 
@@ -51,9 +56,20 @@ const dateDescribedBy = computed((): string | undefined =>
 const timeDescribedBy = computed((): string | undefined =>
   errors.value.time ? timeErrorId : undefined,
 )
+const serviceDescribedBy = computed((): string | undefined =>
+  errors.value.serviceSlug ? serviceErrorId : undefined,
+)
 const supportTypeDescribedBy = computed((): string | undefined =>
   errors.value.supportType ? supportTypeErrorId : undefined,
 )
+
+const selectedServiceTitle = computed((): string => {
+  const match = bookableServices.find((option) => option.slug === form.value.serviceSlug)
+  if (match === undefined) {
+    return 'your appointment'
+  }
+  return match.title
+})
 
 function handleSubmit(event: Event): void {
   event.preventDefault()
@@ -78,6 +94,13 @@ function handleTimeInput(event: Event): void {
   const target = event.target
   if (target instanceof HTMLInputElement) {
     setTime(target.value)
+  }
+}
+
+function handleServiceChange(event: Event): void {
+  const target = event.target
+  if (target instanceof HTMLSelectElement) {
+    setServiceSlug(target.value)
   }
 }
 
@@ -112,8 +135,8 @@ function handleAccessibilityInput(event: Event): void {
       role="status"
       class="mt-4 rounded border border-brand-accent bg-surface-muted p-4 text-sm text-text-default"
     >
-      Thank you. Your booking request for {{ serviceTitle }} has been received. Our team will
-      contact you to confirm your appointment.
+      Thank you. Your booking request for {{ selectedServiceTitle }} has been received. Our team
+      will contact you to confirm your appointment.
     </p>
 
     <form v-else class="mt-4 flex flex-col gap-4" novalidate @submit="handleSubmit">
@@ -131,6 +154,31 @@ function handleAccessibilityInput(event: Event): void {
         />
         <p v-if="errors.name" :id="nameErrorId" class="text-xs text-brand-accent" role="alert">
           {{ errors.name }}
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <label for="booking-service" class="text-xs font-medium text-text-subtle">Service</label>
+        <select
+          id="booking-service"
+          :value="form.serviceSlug"
+          :aria-invalid="errors.serviceSlug ? true : undefined"
+          :aria-describedby="serviceDescribedBy"
+          class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          @change="handleServiceChange"
+        >
+          <option value="" disabled>Select a service</option>
+          <option v-for="option in bookableServices" :key="option.slug" :value="option.slug">
+            {{ option.title }}
+          </option>
+        </select>
+        <p
+          v-if="errors.serviceSlug"
+          :id="serviceErrorId"
+          class="text-xs text-brand-accent"
+          role="alert"
+        >
+          {{ errors.serviceSlug }}
         </p>
       </div>
 

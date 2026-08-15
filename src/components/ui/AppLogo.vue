@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import logoUrl from '@/assets/images/logo.svg'
+import logoUrl from '@/assets/images/logo.png'
 
 interface Props {
   size?: 'sm' | 'md'
@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'md',
 })
 
-const heightClass = computed(() => (props.size === 'sm' ? 'h-7' : 'h-9'))
+const heightClass = computed(() => (props.size === 'sm' ? 'h-10' : 'h-12'))
 </script>
 
 <template>
@@ -22,9 +22,9 @@ const heightClass = computed(() => (props.size === 'sm' ? 'h-7' : 'h-9'))
     <img
       :src="logoUrl"
       alt="Melbourne Health"
-      :class="['w-auto', heightClass]"
-      width="380"
-      height="64"
+      :class="['w-auto max-w-none', heightClass]"
+      width="1529"
+      height="385"
     />
   </router-link>
 </template>

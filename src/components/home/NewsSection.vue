@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import BaseCard from '@/components/ui/BaseCard.vue'
-import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
+import NewsCard from '@/components/community/NewsCard.vue'
 import { useHomeContent } from '@/composables/useHomeContent'
 
 const { news } = useHomeContent()
@@ -21,26 +20,8 @@ const { news } = useHomeContent()
         </router-link>
       </div>
       <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <li v-for="article in news" :key="article.id">
-          <BaseCard interactive>
-            <ResponsiveImage
-              :image="article.image"
-              :image-jpg="article.imageJpg"
-              :image-small="article.imageSmall"
-              :image-small-jpg="article.imageSmallJpg"
-              :alt="article.imageAlt"
-              class-name="mb-2 h-36 w-full rounded object-cover"
-            />
-            <p class="text-xs font-medium text-text-subtle">{{ article.publishedOn }}</p>
-            <h3 class="text-base font-bold text-text-default">{{ article.headline }}</h3>
-            <p class="text-sm text-text-muted">{{ article.excerpt }}</p>
-            <router-link
-              :to="article.readMoreTo"
-              class="text-sm font-bold text-text-default underline hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            >
-              Read more
-            </router-link>
-          </BaseCard>
+        <li v-for="article in news" :key="article.id" class="flex">
+          <NewsCard :article="article" :show-read-more="true" />
         </li>
       </ul>
     </div>

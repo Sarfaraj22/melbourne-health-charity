@@ -15,6 +15,7 @@ const buttonVariants = cva(
       variant: {
         primary: 'bg-brand-primary text-text-on-brand hover:bg-brand-primary-dark',
         accent: 'bg-brand-accent text-text-on-brand hover:bg-brand-accent-dark',
+        donate: 'bg-brand-donate text-text-on-brand hover:bg-brand-donate-dark',
         secondary:
           'border border-brand-primary bg-surface text-brand-primary hover:bg-surface-muted',
       },
