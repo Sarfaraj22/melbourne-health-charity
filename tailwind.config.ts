@@ -9,6 +9,8 @@ export default {
         'brand-primary-dark': '#1e3a8a',
         'brand-accent': '#0d9488',
         'brand-accent-dark': '#0f766e',
+        'brand-donate': '#e11d48',
+        'brand-donate-dark': '#be123c',
         surface: '#ffffff',
         'surface-muted': '#f7f9fc',
         'surface-inverse': '#0f172a',
