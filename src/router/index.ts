@@ -8,7 +8,42 @@ const routes: RouteRecordRaw[] = [
     name: 'home',
     component: () => import('@/views/HomeView.vue'),
   },
-  { path: '/about', name: 'about', component: Placeholder, meta: { title: 'About Us' } },
+  {
+    path: '/about',
+    name: 'about',
+    component: () => import('@/views/AboutView.vue'),
+    meta: { title: 'About Us' },
+  },
+  {
+    path: '/about/our-story',
+    name: 'about-story',
+    component: () => import('@/views/AboutStoryView.vue'),
+    meta: { title: 'Our Story' },
+  },
+  {
+    path: '/about/our-team',
+    name: 'about-team',
+    component: () => import('@/views/AboutTeamView.vue'),
+    meta: { title: 'Our Team' },
+  },
+  {
+    path: '/about/our-mission',
+    name: 'about-mission',
+    component: () => import('@/views/AboutMissionView.vue'),
+    meta: { title: 'Our Mission' },
+  },
+  {
+    path: '/about/partners',
+    name: 'about-partners',
+    component: () => import('@/views/AboutPartnersView.vue'),
+    meta: { title: 'Partners and Sponsors' },
+  },
+  {
+    path: '/about/annual-reports',
+    name: 'about-reports',
+    component: () => import('@/views/AboutReportsView.vue'),
+    meta: { title: 'Annual Reports' },
+  },
   {
     path: '/services',
     name: 'services',
@@ -48,8 +83,26 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/get-support',
     name: 'get-support',
-    component: Placeholder,
+    component: () => import('@/views/GetSupportView.vue'),
     meta: { title: 'Get Support' },
+  },
+  {
+    path: '/get-support/book-appointment',
+    name: 'get-support-book',
+    component: () => import('@/views/GetSupportBookView.vue'),
+    meta: { title: 'Book an Appointment' },
+  },
+  {
+    path: '/get-support/live-chat',
+    name: 'get-support-chat',
+    component: () => import('@/views/GetSupportChatView.vue'),
+    meta: { title: 'Live Chat' },
+  },
+  {
+    path: '/get-support/request-assistance',
+    name: 'get-support-assist',
+    component: () => import('@/views/GetSupportAssistView.vue'),
+    meta: { title: 'Request Assistance' },
   },
   {
     path: '/volunteer',
@@ -87,7 +140,36 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/VolunteerTrainingView.vue'),
     meta: { title: 'Training Resources' },
   },
-  { path: '/donate', name: 'donate', component: Placeholder, meta: { title: 'Donate' } },
+  {
+    path: '/donate',
+    name: 'donate',
+    component: () => import('@/views/DonateView.vue'),
+    meta: { title: 'Donate' },
+  },
+  {
+    path: '/donate/make-a-donation',
+    name: 'donate-make',
+    component: () => import('@/views/DonateMakeView.vue'),
+    meta: { title: 'Make a Donation' },
+  },
+  {
+    path: '/donate/fundraising',
+    name: 'donate-fundraising',
+    component: () => import('@/views/DonateFundraisingView.vue'),
+    meta: { title: 'Fundraising Campaigns' },
+  },
+  {
+    path: '/donate/corporate-partnerships',
+    name: 'donate-corporate',
+    component: () => import('@/views/DonateCorporateView.vue'),
+    meta: { title: 'Corporate Partnerships' },
+  },
+  {
+    path: '/donate/faqs',
+    name: 'donate-faqs',
+    component: () => import('@/views/DonateFaqsView.vue'),
+    meta: { title: 'Donation FAQs' },
+  },
   {
     path: '/events',
     name: 'events',
@@ -104,7 +186,12 @@ const routes: RouteRecordRaw[] = [
     },
     meta: { title: 'Event Detail' },
   },
-  { path: '/community', name: 'community', component: Placeholder, meta: { title: 'Community' } },
+  {
+    path: '/community',
+    name: 'community',
+    component: () => import('@/views/CommunityView.vue'),
+    meta: { title: 'Community' },
+  },
   {
     path: '/contact',
     name: 'contact',
@@ -112,14 +199,45 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Contact' },
   },
   { path: '/login', name: 'login', component: Placeholder, meta: { title: 'Login' } },
-  { path: '/legal', name: 'legal', component: Placeholder, meta: { title: 'Legal' } },
+  {
+    path: '/accessibility-statement',
+    name: 'accessibility-statement',
+    component: () => import('@/views/LegalDocumentView.vue'),
+    props: { slug: 'accessibility-statement' },
+    meta: { title: 'Accessibility Statement' },
+  },
+  {
+    path: '/privacy-policy',
+    name: 'privacy-policy',
+    component: () => import('@/views/LegalDocumentView.vue'),
+    props: { slug: 'privacy-policy' },
+    meta: { title: 'Privacy Policy' },
+  },
+  {
+    path: '/terms-of-use',
+    name: 'terms-of-use',
+    component: () => import('@/views/LegalDocumentView.vue'),
+    props: { slug: 'terms-of-use' },
+    meta: { title: 'Terms of Use' },
+  },
+  {
+    path: '/cookie-policy',
+    name: 'cookie-policy',
+    component: () => import('@/views/LegalDocumentView.vue'),
+    props: { slug: 'cookie-policy' },
+    meta: { title: 'Cookie Policy' },
+  },
+  { path: '/legal', redirect: '/privacy-policy' },
   { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/' },
 ]
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior() {
+  scrollBehavior(to) {
+    if (to.hash) {
+      return { el: to.hash }
+    }
     return { top: 0 }
   },
 })
