@@ -19,7 +19,7 @@ const accessibilityStatement: LegalDocument = {
       id: 'features',
       heading: 'Accessibility features on this site',
       paragraphs: [
-        'A skip link takes you to the main content. The accessibility bar at the top of every page offers text size, contrast, and underline options.',
+        'A skip link takes you to the main content. The accessibility bar at the top of every page lets you change text size, turn on high contrast, enlarge buttons, underline links, and use a plainer reading layout. Language stays English here; other languages and Easy Read can be requested from this statement.',
         'Forms include labels, error messages, and success confirmation. We avoid relying on colour alone to convey meaning.',
       ],
     },

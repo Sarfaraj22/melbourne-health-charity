@@ -15,3 +15,62 @@
     border-width: 0;
   }
 }
+
+/* Site-wide accessibility theme — html class toggles cannot be expressed as utilities. */
+@layer base {
+  html.a11y-text-large {
+    /* Tailwind fontSize.lg */
+    font-size: 1.125rem;
+  }
+
+  html.a11y-text-xl {
+    /* Tailwind fontSize.xl */
+    font-size: 1.25rem;
+  }
+
+  html.a11y-contrast,
+  html.a11y-contrast body {
+    background-color: theme('colors.surface-inverse');
+    color: theme('colors.text-on-brand');
+  }
+
+  html.a11y-contrast .bg-surface,
+  html.a11y-contrast .bg-surface-muted {
+    background-color: theme('colors.surface-inverse');
+    color: theme('colors.text-on-brand');
+  }
+
+  html.a11y-contrast .text-text-default,
+  html.a11y-contrast .text-text-muted,
+  html.a11y-contrast .text-text-subtle {
+    color: theme('colors.text-on-brand');
+  }
+
+  html.a11y-contrast .border-border-default,
+  html.a11y-contrast .border-border-strong {
+    border-color: theme('colors.border-strong');
+  }
+
+  html.a11y-large-controls button,
+  html.a11y-large-controls a.inline-flex {
+    min-height: theme('spacing.12');
+    padding-left: theme('spacing.6');
+    padding-right: theme('spacing.6');
+    padding-top: theme('spacing.3');
+    padding-bottom: theme('spacing.3');
+  }
+
+  html.a11y-underline-links main a {
+    text-decoration-line: underline;
+    text-underline-offset: theme('spacing.1');
+  }
+
+  html.a11y-plain-reading {
+    line-height: theme('lineHeight.relaxed');
+    letter-spacing: theme('letterSpacing.wide');
+  }
+
+  html.a11y-plain-reading p {
+    line-height: theme('lineHeight.loose');
+  }
+}
