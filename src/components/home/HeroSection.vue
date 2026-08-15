@@ -8,23 +8,25 @@ import hero800Jpg from '@/assets/images/hero-800.jpg'
 
 <template>
   <section aria-labelledby="hero-heading" class="flex flex-col items-center bg-surface">
-    <picture>
-      <source
-        type="image/webp"
-        :srcset="`${hero800Webp} 800w, ${hero1600Webp} 1600w`"
-        sizes="100vw"
-      />
-      <img
-        :src="hero1600Jpg"
-        :srcset="`${hero800Jpg} 800w, ${hero1600Jpg} 1600w`"
-        sizes="100vw"
-        alt="People with disabilities receiving compassionate support in the community"
-        class="h-72 w-full object-cover sm:h-96 lg:h-hero"
-        width="1600"
-        height="900"
-        fetchpriority="high"
-      />
-    </picture>
+    <div class="mx-auto w-full max-w-container px-5 sm:px-8">
+      <picture class="block w-full">
+        <source
+          type="image/webp"
+          :srcset="`${hero800Webp} 800w, ${hero1600Webp} 1600w`"
+          sizes="100vw"
+        />
+        <img
+          :src="hero1600Jpg"
+          :srcset="`${hero800Jpg} 800w, ${hero1600Jpg} 1600w`"
+          sizes="100vw"
+          alt="Flinders Street Station in Melbourne on a sunny day"
+          class="h-72 w-full object-cover sm:h-96 lg:h-hero"
+          width="1600"
+          height="900"
+          fetchpriority="high"
+        />
+      </picture>
+    </div>
     <div class="mx-auto flex w-full max-w-container flex-col items-center gap-5 px-5 py-14 sm:px-8">
       <h1
         id="hero-heading"
