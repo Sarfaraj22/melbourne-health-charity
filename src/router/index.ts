@@ -105,7 +105,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Event Detail' },
   },
   { path: '/community', name: 'community', component: Placeholder, meta: { title: 'Community' } },
-  { path: '/contact', name: 'contact', component: Placeholder, meta: { title: 'Contact' } },
+  {
+    path: '/contact',
+    name: 'contact',
+    component: () => import('@/views/ContactView.vue'),
+    meta: { title: 'Contact' },
+  },
   { path: '/login', name: 'login', component: Placeholder, meta: { title: 'Login' } },
   { path: '/legal', name: 'legal', component: Placeholder, meta: { title: 'Legal' } },
   { path: '/:pathMatch(.*)*', name: 'not-found', redirect: '/' },
