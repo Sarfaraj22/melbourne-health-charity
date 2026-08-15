@@ -5,6 +5,7 @@ import type {
   SupportType,
   TransportRequired,
 } from '@/types/service'
+import { getBookableServices } from '@/composables/useServicesContent'
 
 export interface UseBookingFormReturn {
   readonly form: Ref<BookingFormState>
@@ -14,6 +15,7 @@ export interface UseBookingFormReturn {
   setName: (value: string) => void
   setDate: (value: string) => void
   setTime: (value: string) => void
+  setServiceSlug: (value: string) => void
   setSupportType: (value: SupportType) => void
   setAccessibilityRequirements: (value: string) => void
   setTransportRequired: (value: TransportRequired) => void
@@ -21,10 +23,19 @@ export interface UseBookingFormReturn {
   reset: () => void
 }
 
-const initialFormState = (): BookingFormState => ({
+function isBookableSlug(value: string): boolean {
+  return getBookableServices().some((option) => option.slug === value)
+}
+
+function resolvedInitialSlug(initialServiceSlug: string): string {
+  return isBookableSlug(initialServiceSlug) ? initialServiceSlug : ''
+}
+
+const initialFormState = (initialServiceSlug: string): BookingFormState => ({
   name: '',
   date: '',
   time: '',
+  serviceSlug: resolvedInitialSlug(initialServiceSlug),
   supportType: '',
   accessibilityRequirements: '',
   transportRequired: 'no',
@@ -45,6 +56,10 @@ function validateForm(state: BookingFormState): BookingFormErrors {
     errors.time = 'Please select a time for your appointment.'
   }
 
+  if (!state.serviceSlug) {
+    errors.serviceSlug = 'Please choose a service.'
+  }
+
   if (!state.supportType) {
     errors.supportType = 'Please choose a support type.'
   }
@@ -52,8 +67,8 @@ function validateForm(state: BookingFormState): BookingFormErrors {
   return errors
 }
 
-export function useBookingForm(): UseBookingFormReturn {
-  const form = ref<BookingFormState>(initialFormState())
+export function useBookingForm(initialServiceSlug: string): UseBookingFormReturn {
+  const form = ref<BookingFormState>(initialFormState(initialServiceSlug))
   const errors = ref<BookingFormErrors>({})
   const isSubmitted = ref(false)
   const isSubmitting = ref(false)
@@ -79,6 +94,16 @@ export function useBookingForm(): UseBookingFormReturn {
     errors.value = next
   }
 
+  function setServiceSlug(value: string): void {
+    if (!isBookableSlug(value)) {
+      return
+    }
+    form.value = { ...form.value, serviceSlug: value }
+    const next = { ...errors.value }
+    delete next.serviceSlug
+    errors.value = next
+  }
+
   function setSupportType(value: SupportType): void {
     form.value = { ...form.value, supportType: value }
     const next = { ...errors.value }
@@ -95,7 +120,7 @@ export function useBookingForm(): UseBookingFormReturn {
   }
 
   function reset(): void {
-    form.value = initialFormState()
+    form.value = initialFormState(initialServiceSlug)
     errors.value = {}
     isSubmitted.value = false
     isSubmitting.value = false
@@ -124,6 +149,7 @@ export function useBookingForm(): UseBookingFormReturn {
     setName,
     setDate,
     setTime,
+    setServiceSlug,
     setSupportType,
     setAccessibilityRequirements,
     setTransportRequired,

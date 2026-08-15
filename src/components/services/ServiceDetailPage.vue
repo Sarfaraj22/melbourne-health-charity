@@ -37,7 +37,7 @@ const infoSectionHeading = computed((): string | undefined =>
         </div>
         <div class="lg:w-96 lg:shrink-0">
           <EligibilityCheckerCard v-if="detail.variant === 'eligibility-checker'" />
-          <BookingFormCard v-else :service-title="detail.title" />
+          <BookingFormCard v-else :initial-service-slug="detail.slug" />
         </div>
       </div>
     </div>

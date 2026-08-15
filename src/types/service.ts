@@ -55,10 +55,16 @@ export type SupportType = 'in-person' | 'telehealth' | 'phone'
 
 export type TransportRequired = 'yes' | 'no'
 
+export interface BookableServiceOption {
+  readonly slug: string
+  readonly title: string
+}
+
 export interface BookingFormState {
   readonly name: string
   readonly date: string
   readonly time: string
+  readonly serviceSlug: string
   readonly supportType: SupportType | ''
   readonly accessibilityRequirements: string
   readonly transportRequired: TransportRequired
@@ -68,6 +74,7 @@ export interface BookingFormErrors {
   readonly name?: string
   readonly date?: string
   readonly time?: string
+  readonly serviceSlug?: string
   readonly supportType?: string
 }
 
