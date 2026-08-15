@@ -19,6 +19,7 @@ export interface ServiceDetail {
   readonly availability: string
   readonly icon: string
   readonly variant: ServiceDetailVariant
+  readonly activities?: readonly string[]
 }
 
 interface ServiceCategoryBase {
