@@ -88,7 +88,22 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Training Resources' },
   },
   { path: '/donate', name: 'donate', component: Placeholder, meta: { title: 'Donate' } },
-  { path: '/events', name: 'events', component: Placeholder, meta: { title: 'Events' } },
+  {
+    path: '/events',
+    name: 'events',
+    component: () => import('@/views/EventsIndexView.vue'),
+    meta: { title: 'Events' },
+  },
+  {
+    path: '/events/:eventSlug',
+    name: 'event-detail',
+    component: () => import('@/views/EventDetailView.vue'),
+    props: (route) => {
+      const eventSlug = route.params['eventSlug']
+      return { eventSlug: typeof eventSlug === 'string' ? eventSlug : '' }
+    },
+    meta: { title: 'Event Detail' },
+  },
   { path: '/community', name: 'community', component: Placeholder, meta: { title: 'Community' } },
   { path: '/contact', name: 'contact', component: Placeholder, meta: { title: 'Contact' } },
   { path: '/login', name: 'login', component: Placeholder, meta: { title: 'Login' } },
