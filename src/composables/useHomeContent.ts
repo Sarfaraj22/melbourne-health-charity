@@ -82,7 +82,7 @@ const events: readonly EventItem[] = [
     imageSmall: eventMorningTeaSmallWebp,
     imageSmallJpg: eventMorningTeaSmallJpg,
     imageAlt: 'People gathered together chatting at a community morning tea',
-    detailsTo: '/events',
+    detailsTo: '/events/community-morning-tea',
   },
   {
     id: 'ndis-info-session',
@@ -94,7 +94,7 @@ const events: readonly EventItem[] = [
     imageSmall: eventNdisSessionSmallWebp,
     imageSmallJpg: eventNdisSessionSmallJpg,
     imageAlt: 'A healthcare professional consulting with a patient during an information session',
-    detailsTo: '/events',
+    detailsTo: '/events/ndis-info-session',
   },
   {
     id: 'accessible-sports-day',
@@ -107,7 +107,7 @@ const events: readonly EventItem[] = [
     imageSmall: eventSportsDaySmallWebp,
     imageSmallJpg: eventSportsDaySmallJpg,
     imageAlt: 'Wheelchair basketball players competing on an outdoor court',
-    detailsTo: '/events',
+    detailsTo: '/events/accessible-sports-day',
   },
 ]
 

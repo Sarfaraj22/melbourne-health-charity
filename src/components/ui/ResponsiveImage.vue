@@ -10,6 +10,7 @@ interface Props {
   readonly height?: number
   readonly loading?: 'eager' | 'lazy'
   readonly className?: string
+  readonly pictureClassName?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -18,11 +19,12 @@ const props = withDefaults(defineProps<Props>(), {
   height: 450,
   loading: 'lazy',
   className: '',
+  pictureClassName: 'block h-full w-full',
 })
 </script>
 
 <template>
-  <picture class="block h-full w-full">
+  <picture :class="props.pictureClassName">
     <source
       type="image/webp"
       :srcset="`${props.imageSmall} 400w, ${props.image} 800w`"
