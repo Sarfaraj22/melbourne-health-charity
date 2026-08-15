@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, type ComputedRef } from 'vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import type { ServiceDetail } from '@/types/service'
 
@@ -36,8 +37,11 @@ const tiles: ComputedRef<readonly InfoTile[]> = computed(() => [
     </h1>
 
     <div class="flex items-start gap-3">
-      <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-      <span aria-hidden="true" class="text-brand-primary" v-html="infoIcon"></span>
+      <span
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-primary"
+      >
+        <AppIcon :svg="infoIcon" class-name="[&>svg]:h-5 [&>svg]:w-5" />
+      </span>
       <p class="text-base text-text-muted">{{ service.description }}</p>
     </div>
 
@@ -45,8 +49,11 @@ const tiles: ComputedRef<readonly InfoTile[]> = computed(() => [
       <li v-for="tile in tiles" :key="tile.label">
         <BaseCard class="h-full">
           <div class="flex items-start gap-3">
-            <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-            <span aria-hidden="true" class="text-brand-primary" v-html="tile.icon"></span>
+            <span
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-primary"
+            >
+              <AppIcon :svg="tile.icon" class-name="[&>svg]:h-5 [&>svg]:w-5" />
+            </span>
             <div class="flex flex-col gap-1">
               <p class="text-xs font-medium uppercase tracking-wide text-text-subtle">
                 {{ tile.label }}

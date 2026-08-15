@@ -18,7 +18,7 @@ const { benefits } = useVolunteerContent()
             <span
               class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
             >
-              <AppIcon :svg="benefit.icon" class-name="h-6 w-6" />
+              <AppIcon :svg="benefit.icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
             </span>
             <h3 class="text-base font-bold text-text-default">{{ benefit.title }}</h3>
             <p class="text-sm text-text-muted">{{ benefit.description }}</p>

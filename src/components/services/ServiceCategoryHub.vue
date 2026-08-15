@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/ui/AppIcon.vue'
 import ServiceBreadcrumb from '@/components/services/ServiceBreadcrumb.vue'
 import ServiceCategoryCard from '@/components/services/ServiceCategoryCard.vue'
 import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
@@ -32,8 +33,11 @@ defineProps<Props>()
             sizes="(min-width: 1024px) 50vw, 100vw"
           />
           <div class="flex flex-col justify-center gap-4 p-6 sm:p-8">
-            <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-            <span aria-hidden="true" class="text-brand-primary" v-html="category.icon"></span>
+            <span
+              class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
+            >
+              <AppIcon :svg="category.icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
+            </span>
             <h1 id="category-heading" class="text-3xl font-bold text-text-default sm:text-4xl">
               {{ category.title }}
             </h1>
@@ -43,8 +47,11 @@ defineProps<Props>()
       </article>
 
       <div v-else class="mb-10 flex flex-col gap-3">
-        <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-        <span aria-hidden="true" class="text-brand-primary" v-html="category.icon"></span>
+        <span
+          class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
+        >
+          <AppIcon :svg="category.icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
+        </span>
         <h1 id="category-heading" class="text-3xl font-bold text-text-default sm:text-4xl">
           {{ category.title }}
         </h1>

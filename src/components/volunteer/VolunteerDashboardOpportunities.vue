@@ -33,7 +33,7 @@ const { opportunities } = dashboard
             <span
               class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface text-brand-primary"
             >
-              <AppIcon :svg="opportunity.icon" class-name="h-6 w-6" />
+              <AppIcon :svg="opportunity.icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
             </span>
             <span
               class="inline-block w-fit rounded border border-brand-primary px-2.5 py-1 text-xs font-bold text-brand-primary"

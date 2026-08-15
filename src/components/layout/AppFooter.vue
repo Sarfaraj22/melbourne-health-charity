@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/ui/AppIcon.vue'
 import AppLogo from '@/components/ui/AppLogo.vue'
 
 import facebookIcon from '@/assets/icons/facebook.svg?raw'
@@ -63,8 +64,7 @@ const socialLinks: readonly SocialLink[] = [
                 :title="social.label"
                 class="flex h-9 w-9 items-center justify-center rounded-full bg-border-strong text-text-default transition-colors hover:bg-brand-primary hover:text-text-on-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
               >
-                <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-                <span aria-hidden="true" v-html="social.icon"></span>
+                <AppIcon :svg="social.icon" class-name="[&>svg]:h-5 [&>svg]:w-5" />
               </router-link>
             </li>
           </ul>

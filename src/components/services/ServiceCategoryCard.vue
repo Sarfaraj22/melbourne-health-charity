@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/ui/AppIcon.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
 import type { ServiceCategory } from '@/types/service'
@@ -31,8 +32,11 @@ defineProps<Props>()
         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
       />
       <div class="flex flex-col gap-2 p-4">
-        <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-        <span aria-hidden="true" class="text-brand-primary" v-html="icon"></span>
+        <span
+          class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
+        >
+          <AppIcon :svg="icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
+        </span>
         <h2 class="text-lg font-bold text-text-default">{{ title }}</h2>
         <p class="text-sm text-text-muted">{{ summary }}</p>
       </div>

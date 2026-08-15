@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppIcon from '@/components/ui/AppIcon.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import { useServicesContent } from '@/composables/useServicesContent'
 
@@ -18,8 +19,11 @@ const { supportChannels } = useServicesContent()
             class="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
           >
             <BaseCard interactive class="items-center text-center">
-              <!-- eslint-disable-next-line vue/no-v-html -- icon is a trusted local SVG asset, not user input -->
-              <span aria-hidden="true" class="text-brand-primary" v-html="channel.icon"></span>
+              <span
+                class="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-brand-primary"
+              >
+                <AppIcon :svg="channel.icon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
+              </span>
               <h3 class="text-base font-bold text-text-default">{{ channel.title }}</h3>
               <p class="text-sm text-text-subtle">{{ channel.description }}</p>
             </BaseCard>
