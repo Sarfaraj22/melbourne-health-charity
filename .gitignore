@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.log
+
+# Coverage
+coverage
+
+# Firebase
+.firebase
+firebase-debug.log
+
+# Cursor / agent tooling (local only)
+.cursorrules
+.cursorignore
+agent.md
+prompt.txt
+git-feature.md
+git.md
+.ua/
+
+# Documentation — keep README.md tracked, ignore all other markdown
+*.md
+!README.md
+
+# Scripts (setup/tooling scripts — not part of the shipped app)
+*.sh
+*.bash
+*.zsh
+*.ps1
+*.bat
+*.cmd
+
+# Prompts
+prompts/
+**/prompts/
+prompt.txt
