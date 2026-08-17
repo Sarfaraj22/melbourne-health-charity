@@ -9,7 +9,11 @@ dist-ssr
 # Environment / secrets
 .env
 .env.*
-!.env.example
+.env.example
+
+# Firebase service account keys (seed script only — never commit)
+service-account*.json
+**/service-account*.json
 
 # OS / editor
 .DS_Store
@@ -34,6 +38,7 @@ git.md
 # Documentation — keep README.md tracked, ignore all other markdown
 *.md
 !README.md
+!scripts/seed-users.README.md
 
 # Scripts (setup/tooling scripts — not part of the shipped app)
 *.sh
