@@ -17,7 +17,7 @@ export interface DonationFormErrors {
   readonly email?: string
 }
 
-export type DonationFormStatus = 'idle' | 'submitting' | 'success'
+export type DonationFormStatus = 'idle' | 'submitting' | 'success' | 'error'
 
 export interface FundraisingCampaign {
   readonly id: string

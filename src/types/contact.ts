@@ -62,7 +62,7 @@ export interface ContactFormErrors {
   readonly message?: string
 }
 
-export type ContactFormStatus = 'idle' | 'submitting' | 'success'
+export type ContactFormStatus = 'idle' | 'submitting' | 'success' | 'error'
 
 export interface ContactContent {
   readonly heroHeading: string

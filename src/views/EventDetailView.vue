@@ -37,7 +37,11 @@ const crumbs = computed((): readonly BreadcrumbItem[] => {
           <EventDetailInfo :event="event" />
         </div>
         <div class="lg:w-96 lg:shrink-0">
-          <EventRegistrationForm v-if="event.registrationOpen" :event-title="event.title" />
+          <EventRegistrationForm
+            v-if="event.registrationOpen"
+            :event-title="event.title"
+            :event-slug="props.eventSlug"
+          />
           <aside
             v-else
             aria-labelledby="registration-closed-heading"

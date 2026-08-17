@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { submitDonation } from '@/services/firebase/firestore.service'
 import type {
   DonationFormErrors,
   DonationFormState,
@@ -10,13 +11,14 @@ export interface UseDonationFormReturn {
   readonly form: Ref<DonationFormState>
   readonly errors: Ref<DonationFormErrors>
   readonly status: Ref<DonationFormStatus>
+  readonly errorMessage: Ref<string>
   setAmountPreset: (value: DonationFormState['amountPreset']) => void
   setCustomAmount: (value: string) => void
   setFrequency: (value: DonationFrequency) => void
   setName: (value: string) => void
   setEmail: (value: string) => void
   setMessage: (value: string) => void
-  submit: () => boolean
+  submit: () => Promise<boolean>
   reset: () => void
 }
 
@@ -72,6 +74,7 @@ export function useDonationForm(): UseDonationFormReturn {
   const form = ref<DonationFormState>(initialFormState())
   const errors = ref<DonationFormErrors>({})
   const status = ref<DonationFormStatus>('idle')
+  const errorMessage = ref<string>('')
 
   function setAmountPreset(value: DonationFormState['amountPreset']): void {
     form.value = { ...form.value, amountPreset: value }
@@ -105,10 +108,12 @@ export function useDonationForm(): UseDonationFormReturn {
     form.value = initialFormState()
     errors.value = {}
     status.value = 'idle'
+    errorMessage.value = ''
   }
 
-  function submit(): boolean {
+  async function submit(): Promise<boolean> {
     status.value = 'submitting'
+    errorMessage.value = ''
     const validationErrors = validateForm(form.value)
     errors.value = validationErrors
 
@@ -117,14 +122,30 @@ export function useDonationForm(): UseDonationFormReturn {
       return false
     }
 
-    status.value = 'success'
-    return true
+    try {
+      await submitDonation({
+        amount: resolveAmount(form.value),
+        frequency: form.value.frequency,
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        message: form.value.message.trim(),
+        createdAt: Date.now(),
+      })
+      status.value = 'success'
+      return true
+    } catch {
+      status.value = 'error'
+      errorMessage.value =
+        'Unable to submit your donation request right now. Please try again later.'
+      return false
+    }
   }
 
   return {
     form,
     errors,
     status,
+    errorMessage,
     setAmountPreset,
     setCustomAmount,
     setFrequency,

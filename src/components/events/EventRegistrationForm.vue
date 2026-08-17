@@ -6,15 +6,18 @@ import lockIcon from '@/assets/icons/lock.svg?raw'
 
 interface Props {
   readonly eventTitle: string
+  readonly eventSlug: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const {
   form,
   errors,
   isSubmitted,
   isSubmitting,
+  isError,
+  errorMessage,
   setName,
   setEmail,
   setPhone,
@@ -22,7 +25,7 @@ const {
   setAccessibilityRequirements,
   setOptInUpdates,
   submit,
-} = useEventRegistrationForm()
+} = useEventRegistrationForm(props.eventSlug)
 
 const nameErrorId = 'event-reg-name-error'
 const emailErrorId = 'event-reg-email-error'
@@ -43,9 +46,9 @@ const attendeesDescribedBy = computed((): string | undefined =>
   errors.value.attendees ? attendeesErrorId : undefined,
 )
 
-function handleSubmit(event: Event): void {
+async function handleSubmit(event: Event): Promise<void> {
   event.preventDefault()
-  submit()
+  await submit()
 }
 
 function handleNameInput(event: Event): void {
@@ -111,6 +114,9 @@ function handleOptInChange(event: Event): void {
     </p>
 
     <form v-else class="mt-4 flex flex-col gap-4" novalidate @submit="handleSubmit">
+      <p v-if="isError" class="text-xs text-brand-accent" role="alert">
+        {{ errorMessage }}
+      </p>
       <div class="flex flex-col gap-1.5">
         <label for="event-reg-name" class="text-xs font-medium text-text-subtle">Name</label>
         <input

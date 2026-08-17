@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { submitAssistance } from '@/services/firebase/firestore.service'
 import type {
   AssistanceFormErrors,
   AssistanceFormState,
@@ -9,12 +10,13 @@ export interface UseAssistanceFormReturn {
   readonly form: Ref<AssistanceFormState>
   readonly errors: Ref<AssistanceFormErrors>
   readonly status: Ref<AssistanceFormStatus>
+  readonly errorMessage: Ref<string>
   setName: (value: string) => void
   setEmail: (value: string) => void
   setPhone: (value: string) => void
   setNeed: (value: string) => void
   setMessage: (value: string) => void
-  submit: () => boolean
+  submit: () => Promise<boolean>
   reset: () => void
 }
 
@@ -68,6 +70,7 @@ export function useAssistanceForm(): UseAssistanceFormReturn {
   const form = ref<AssistanceFormState>(initialFormState())
   const errors = ref<AssistanceFormErrors>({})
   const status = ref<AssistanceFormStatus>('idle')
+  const errorMessage = ref<string>('')
 
   function setName(value: string): void {
     form.value = { ...form.value, name: value }
@@ -97,10 +100,12 @@ export function useAssistanceForm(): UseAssistanceFormReturn {
     form.value = initialFormState()
     errors.value = {}
     status.value = 'idle'
+    errorMessage.value = ''
   }
 
-  function submit(): boolean {
+  async function submit(): Promise<boolean> {
     status.value = 'submitting'
+    errorMessage.value = ''
     const validationErrors = validateForm(form.value)
     errors.value = validationErrors
 
@@ -109,14 +114,29 @@ export function useAssistanceForm(): UseAssistanceFormReturn {
       return false
     }
 
-    status.value = 'success'
-    return true
+    try {
+      await submitAssistance({
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        phone: form.value.phone.trim(),
+        need: form.value.need.trim(),
+        message: form.value.message.trim(),
+        createdAt: Date.now(),
+      })
+      status.value = 'success'
+      return true
+    } catch {
+      status.value = 'error'
+      errorMessage.value = 'Unable to submit your request right now. Please try again later.'
+      return false
+    }
   }
 
   return {
     form,
     errors,
     status,
+    errorMessage,
     setName,
     setEmail,
     setPhone,

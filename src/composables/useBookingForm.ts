@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { submitBooking } from '@/services/firebase/firestore.service'
 import type {
   BookingFormErrors,
   BookingFormState,
@@ -12,6 +13,8 @@ export interface UseBookingFormReturn {
   readonly errors: Ref<BookingFormErrors>
   readonly isSubmitted: Ref<boolean>
   readonly isSubmitting: Ref<boolean>
+  readonly isError: Ref<boolean>
+  readonly errorMessage: Ref<string>
   setName: (value: string) => void
   setDate: (value: string) => void
   setTime: (value: string) => void
@@ -19,7 +22,7 @@ export interface UseBookingFormReturn {
   setSupportType: (value: SupportType) => void
   setAccessibilityRequirements: (value: string) => void
   setTransportRequired: (value: TransportRequired) => void
-  submit: () => boolean
+  submit: () => Promise<boolean>
   reset: () => void
 }
 
@@ -72,6 +75,8 @@ export function useBookingForm(initialServiceSlug: string): UseBookingFormReturn
   const errors = ref<BookingFormErrors>({})
   const isSubmitted = ref(false)
   const isSubmitting = ref(false)
+  const isError = ref(false)
+  const errorMessage = ref<string>('')
 
   function setName(value: string): void {
     form.value = { ...form.value, name: value }
@@ -124,10 +129,14 @@ export function useBookingForm(initialServiceSlug: string): UseBookingFormReturn
     errors.value = {}
     isSubmitted.value = false
     isSubmitting.value = false
+    isError.value = false
+    errorMessage.value = ''
   }
 
-  function submit(): boolean {
+  async function submit(): Promise<boolean> {
     isSubmitting.value = true
+    isError.value = false
+    errorMessage.value = ''
     const validationErrors = validateForm(form.value)
     errors.value = validationErrors
 
@@ -136,9 +145,32 @@ export function useBookingForm(initialServiceSlug: string): UseBookingFormReturn
       return false
     }
 
-    isSubmitted.value = true
-    isSubmitting.value = false
-    return true
+    const supportType = form.value.supportType
+    if (supportType === '') {
+      isSubmitting.value = false
+      return false
+    }
+
+    try {
+      await submitBooking({
+        name: form.value.name.trim(),
+        date: form.value.date,
+        time: form.value.time,
+        serviceSlug: form.value.serviceSlug,
+        supportType,
+        accessibilityRequirements: form.value.accessibilityRequirements.trim(),
+        transportRequired: form.value.transportRequired,
+        createdAt: Date.now(),
+      })
+      isSubmitted.value = true
+      isSubmitting.value = false
+      return true
+    } catch {
+      isSubmitting.value = false
+      isError.value = true
+      errorMessage.value = 'Unable to submit your booking right now. Please try again later.'
+      return false
+    }
   }
 
   return {
@@ -146,6 +178,8 @@ export function useBookingForm(initialServiceSlug: string): UseBookingFormReturn
     errors,
     isSubmitted,
     isSubmitting,
+    isError,
+    errorMessage,
     setName,
     setDate,
     setTime,

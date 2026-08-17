@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { submitEventRegistration } from '@/services/firebase/firestore.service'
 import type { EventRegistrationFormErrors, EventRegistrationFormState } from '@/types/event'
 
 export interface UseEventRegistrationFormReturn {
@@ -6,13 +7,15 @@ export interface UseEventRegistrationFormReturn {
   readonly errors: Ref<EventRegistrationFormErrors>
   readonly isSubmitted: Ref<boolean>
   readonly isSubmitting: Ref<boolean>
+  readonly isError: Ref<boolean>
+  readonly errorMessage: Ref<string>
   setName: (value: string) => void
   setEmail: (value: string) => void
   setPhone: (value: string) => void
   setAttendees: (value: string) => void
   setAccessibilityRequirements: (value: string) => void
   setOptInUpdates: (value: boolean) => void
-  submit: () => boolean
+  submit: () => Promise<boolean>
   reset: () => void
 }
 
@@ -56,11 +59,13 @@ function validateForm(state: EventRegistrationFormState): EventRegistrationFormE
   return errors
 }
 
-export function useEventRegistrationForm(): UseEventRegistrationFormReturn {
+export function useEventRegistrationForm(eventSlug: string): UseEventRegistrationFormReturn {
   const form = ref<EventRegistrationFormState>(initialFormState())
   const errors = ref<EventRegistrationFormErrors>({})
   const isSubmitted = ref(false)
   const isSubmitting = ref(false)
+  const isError = ref(false)
+  const errorMessage = ref<string>('')
 
   function clearError(field: keyof EventRegistrationFormErrors): void {
     const next = { ...errors.value }
@@ -101,10 +106,14 @@ export function useEventRegistrationForm(): UseEventRegistrationFormReturn {
     errors.value = {}
     isSubmitted.value = false
     isSubmitting.value = false
+    isError.value = false
+    errorMessage.value = ''
   }
 
-  function submit(): boolean {
+  async function submit(): Promise<boolean> {
     isSubmitting.value = true
+    isError.value = false
+    errorMessage.value = ''
     const validationErrors = validateForm(form.value)
     errors.value = validationErrors
 
@@ -113,9 +122,26 @@ export function useEventRegistrationForm(): UseEventRegistrationFormReturn {
       return false
     }
 
-    isSubmitted.value = true
-    isSubmitting.value = false
-    return true
+    try {
+      await submitEventRegistration({
+        eventSlug,
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        phone: form.value.phone.trim(),
+        attendees: form.value.attendees,
+        accessibilityRequirements: form.value.accessibilityRequirements.trim(),
+        optInUpdates: form.value.optInUpdates,
+        createdAt: Date.now(),
+      })
+      isSubmitted.value = true
+      isSubmitting.value = false
+      return true
+    } catch {
+      isSubmitting.value = false
+      isError.value = true
+      errorMessage.value = 'Unable to submit your registration right now. Please try again later.'
+      return false
+    }
   }
 
   return {
@@ -123,6 +149,8 @@ export function useEventRegistrationForm(): UseEventRegistrationFormReturn {
     errors,
     isSubmitted,
     isSubmitting,
+    isError,
+    errorMessage,
     setName,
     setEmail,
     setPhone,

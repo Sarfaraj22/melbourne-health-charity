@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { submitVolunteerApplication } from '@/services/firebase/firestore.service'
 import type {
   VolunteerApplicationFormErrors,
   VolunteerApplicationFormState,
@@ -11,6 +12,7 @@ export interface UseVolunteerApplicationFormReturn {
   readonly form: Ref<VolunteerApplicationFormState>
   readonly errors: Ref<VolunteerApplicationFormErrors>
   readonly status: Ref<VolunteerApplicationStatus>
+  readonly errorMessage: Ref<string>
   readonly availableInterests: readonly {
     readonly id: VolunteerOpportunityCategory
     readonly label: string
@@ -22,7 +24,7 @@ export interface UseVolunteerApplicationFormReturn {
   toggleInterest: (id: VolunteerOpportunityCategory) => void
   setAvailability: (value: VolunteerAvailability | '') => void
   setMessage: (value: string) => void
-  submit: () => boolean
+  submit: () => Promise<boolean>
   reset: () => void
 }
 
@@ -87,6 +89,7 @@ export function useVolunteerApplicationForm(): UseVolunteerApplicationFormReturn
   const form = ref<VolunteerApplicationFormState>(initialFormState())
   const errors = ref<VolunteerApplicationFormErrors>({})
   const status = ref<VolunteerApplicationStatus>('idle')
+  const errorMessage = ref<string>('')
 
   function setName(value: string): void {
     form.value = { ...form.value, name: value }
@@ -137,10 +140,12 @@ export function useVolunteerApplicationForm(): UseVolunteerApplicationFormReturn
     form.value = initialFormState()
     errors.value = {}
     status.value = 'idle'
+    errorMessage.value = ''
   }
 
-  function submit(): boolean {
+  async function submit(): Promise<boolean> {
     status.value = 'submitting'
+    errorMessage.value = ''
     const validationErrors = validateForm(form.value)
     errors.value = validationErrors
 
@@ -149,15 +154,36 @@ export function useVolunteerApplicationForm(): UseVolunteerApplicationFormReturn
       return false
     }
 
-    // No backend yet: simulate a successful submission.
-    status.value = 'success'
-    return true
+    const availability = form.value.availability
+    if (availability === '') {
+      status.value = 'idle'
+      return false
+    }
+
+    try {
+      await submitVolunteerApplication({
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        phone: form.value.phone.trim(),
+        interests: Array.from(form.value.interests).sort(),
+        availability,
+        message: form.value.message.trim(),
+        createdAt: Date.now(),
+      })
+      status.value = 'success'
+      return true
+    } catch {
+      status.value = 'error'
+      errorMessage.value = 'Unable to submit your application right now. Please try again later.'
+      return false
+    }
   }
 
   return {
     form,
     errors,
     status,
+    errorMessage,
     availableInterests,
     availabilityOptions,
     setName,
