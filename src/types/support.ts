@@ -29,4 +29,4 @@ export interface AssistanceFormErrors {
   readonly message?: string
 }
 
-export type AssistanceFormStatus = 'idle' | 'submitting' | 'success'
+export type AssistanceFormStatus = 'idle' | 'submitting' | 'success' | 'error'

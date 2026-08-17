@@ -129,7 +129,7 @@ export interface VolunteerApplicationFormErrors {
   readonly availability?: string
 }
 
-export type VolunteerApplicationStatus = 'idle' | 'submitting' | 'success'
+export type VolunteerApplicationStatus = 'idle' | 'submitting' | 'success' | 'error'
 
 export interface VolunteerContent {
   readonly heroHeading: string

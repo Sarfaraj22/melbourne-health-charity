@@ -18,6 +18,7 @@ const {
   form,
   errors,
   status,
+  errorMessage,
   setAmountPreset,
   setCustomAmount,
   setFrequency,
@@ -57,9 +58,9 @@ const emailDescribedBy = computed((): string | undefined =>
   errors.value.email ? emailErrorId : undefined,
 )
 
-function handleSubmit(event: Event): void {
+async function handleSubmit(event: Event): Promise<void> {
   event.preventDefault()
-  submit()
+  await submit()
 }
 
 function handleCustomAmountInput(event: Event): void {
@@ -107,6 +108,9 @@ function handleMessageInput(event: Event): void {
           gift securely. This page does not take card payments.
         </p>
         <form v-else class="flex flex-col gap-4" novalidate @submit="handleSubmit">
+          <p v-if="status === 'error'" class="text-xs text-brand-accent" role="alert">
+            {{ errorMessage }}
+          </p>
           <fieldset class="flex flex-col gap-1.5">
             <legend class="text-xs font-medium text-text-subtle">Amount</legend>
             <div

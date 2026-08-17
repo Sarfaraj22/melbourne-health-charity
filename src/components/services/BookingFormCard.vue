@@ -19,6 +19,8 @@ const {
   errors,
   isSubmitted,
   isSubmitting,
+  isError,
+  errorMessage,
   setName,
   setDate,
   setTime,
@@ -71,9 +73,9 @@ const selectedServiceTitle = computed((): string => {
   return match.title
 })
 
-function handleSubmit(event: Event): void {
+async function handleSubmit(event: Event): Promise<void> {
   event.preventDefault()
-  submit()
+  await submit()
 }
 
 function handleNameInput(event: Event): void {
@@ -140,6 +142,9 @@ function handleAccessibilityInput(event: Event): void {
     </p>
 
     <form v-else class="mt-4 flex flex-col gap-4" novalidate @submit="handleSubmit">
+      <p v-if="isError" class="text-xs text-brand-accent" role="alert">
+        {{ errorMessage }}
+      </p>
       <div class="flex flex-col gap-1.5">
         <label for="booking-name" class="text-xs font-medium text-text-subtle">Name</label>
         <input

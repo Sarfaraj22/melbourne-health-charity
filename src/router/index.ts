@@ -1,6 +1,15 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.store'
+import type { Role } from '@/types/auth'
 
-const Placeholder = () => import('@/views/PlaceholderView.vue')
+const guestMeta = { requiresGuest: true } as const
+const dashboardRoles: readonly Role[] = ['user', 'volunteer', 'admin']
+const volunteerRoles: readonly Role[] = ['volunteer', 'admin']
+const adminRoles: readonly Role[] = ['admin']
+const dashboardMeta = {
+  requiresAuth: true,
+  requiresRole: dashboardRoles,
+} as const
 
 const routes: RouteRecordRaw[] = [
   {
@@ -126,7 +135,7 @@ const routes: RouteRecordRaw[] = [
     path: '/volunteer/portal',
     name: 'volunteer-portal',
     component: () => import('@/views/VolunteerPortalView.vue'),
-    meta: { title: 'Volunteer Portal' },
+    meta: { title: 'Volunteer Portal', requiresAuth: true, requiresRole: volunteerRoles },
   },
   {
     path: '/volunteer/faqs',
@@ -198,7 +207,92 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ContactView.vue'),
     meta: { title: 'Contact' },
   },
-  { path: '/login', name: 'login', component: Placeholder, meta: { title: 'Login' } },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/auth/LoginView.vue'),
+    meta: { title: 'Login', ...guestMeta },
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import('@/views/auth/RegisterView.vue'),
+    meta: { title: 'Create an account', ...guestMeta },
+  },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/views/auth/ForgotPasswordView.vue'),
+    meta: { title: 'Reset your password', ...guestMeta },
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/dashboard/DashboardView.vue'),
+    meta: { title: 'My Dashboard', ...dashboardMeta },
+  },
+  {
+    path: '/dashboard/appointments',
+    name: 'dashboard-appointments',
+    component: () => import('@/views/dashboard/MyAppointmentsView.vue'),
+    meta: { title: 'My Appointments', ...dashboardMeta },
+  },
+  {
+    path: '/dashboard/messages',
+    name: 'dashboard-messages',
+    component: () => import('@/views/dashboard/MessagesView.vue'),
+    meta: { title: 'Messages', ...dashboardMeta },
+  },
+  {
+    path: '/dashboard/saved-resources',
+    name: 'dashboard-saved-resources',
+    component: () => import('@/views/dashboard/SavedResourcesView.vue'),
+    meta: { title: 'Saved Resources', ...dashboardMeta },
+  },
+  {
+    path: '/dashboard/event-bookings',
+    name: 'dashboard-event-bookings',
+    component: () => import('@/views/dashboard/EventBookingsView.vue'),
+    meta: { title: 'Event Bookings', ...dashboardMeta },
+  },
+  {
+    path: '/dashboard/profile-settings',
+    name: 'dashboard-profile-settings',
+    component: () => import('@/views/dashboard/ProfileSettingsView.vue'),
+    meta: { title: 'Profile & Settings', ...dashboardMeta },
+  },
+  {
+    path: '/admin/dashboard',
+    name: 'admin-dashboard',
+    component: () => import('@/views/admin/AdminDashboardView.vue'),
+    meta: { title: 'Admin Dashboard', requiresAuth: true, requiresRole: adminRoles },
+  },
+  {
+    path: '/admin/volunteers/new',
+    name: 'admin-volunteer-create',
+    component: () => import('@/views/admin/AdminVolunteerCreateView.vue'),
+    meta: { title: 'Add Volunteer', requiresAuth: true, requiresRole: adminRoles },
+  },
+  {
+    path: '/admin/volunteers/:id/edit',
+    name: 'admin-volunteer-edit',
+    component: () => import('@/views/admin/AdminVolunteerEditView.vue'),
+    props: true,
+    meta: { title: 'Edit Volunteer', requiresAuth: true, requiresRole: adminRoles },
+  },
+  {
+    path: '/admin/events/new',
+    name: 'admin-event-create',
+    component: () => import('@/views/admin/AdminEventCreateView.vue'),
+    meta: { title: 'Create Event', requiresAuth: true, requiresRole: adminRoles },
+  },
+  {
+    path: '/admin/events/:id/edit',
+    name: 'admin-event-edit',
+    component: () => import('@/views/admin/AdminEventEditView.vue'),
+    props: true,
+    meta: { title: 'Edit Event', requiresAuth: true, requiresRole: adminRoles },
+  },
   {
     path: '/accessibility-statement',
     name: 'accessibility-statement',
@@ -240,4 +334,38 @@ export const router = createRouter({
     }
     return { top: 0 }
   },
+})
+
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
+  await authStore.ready
+
+  const requiresAuth = to.meta.requiresAuth === true
+  const requiresGuest = to.meta.requiresGuest === true
+  const requiredRoles = to.meta.requiresRole
+  const isAuthenticated = authStore.isAuthenticated
+  const currentRole = authStore.role
+
+  if (requiresAuth && !isAuthenticated) {
+    return {
+      path: '/login',
+      query: { redirect: to.fullPath },
+    }
+  }
+
+  if (requiresGuest && isAuthenticated) {
+    return authStore.roleHome()
+  }
+
+  if (
+    requiresAuth &&
+    isAuthenticated &&
+    requiredRoles !== undefined &&
+    currentRole !== undefined &&
+    !requiredRoles.includes(currentRole)
+  ) {
+    return authStore.roleHome()
+  }
+
+  return true
 })

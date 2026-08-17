@@ -6,8 +6,19 @@ import { useContactForm } from '@/composables/useContactForm'
 import lockIcon from '@/assets/icons/lock.svg?raw'
 import sendIcon from '@/assets/icons/send.svg?raw'
 
-const { form, errors, status, setName, setEmail, setPhone, setSubject, setMessage, submit, reset } =
-  useContactForm()
+const {
+  form,
+  errors,
+  status,
+  errorMessage,
+  setName,
+  setEmail,
+  setPhone,
+  setSubject,
+  setMessage,
+  submit,
+  reset,
+} = useContactForm()
 
 const nameErrorId = 'contact-name-error'
 const emailErrorId = 'contact-email-error'
@@ -32,9 +43,9 @@ const messageDescribedBy = computed((): string | undefined =>
   errors.value.message ? messageErrorId : undefined,
 )
 
-function handleSubmit(event: Event): void {
+async function handleSubmit(event: Event): Promise<void> {
   event.preventDefault()
-  submit()
+  await submit()
 }
 
 function handleNameInput(event: Event): void {
@@ -97,6 +108,9 @@ function handleMessageInput(event: Event): void {
     </p>
 
     <form v-else class="flex flex-col gap-4" novalidate @submit="handleSubmit">
+      <p v-if="status === 'error'" class="text-xs text-brand-accent" role="alert">
+        {{ errorMessage }}
+      </p>
       <div class="flex flex-col gap-1.5">
         <label for="contact-name" class="text-xs font-medium text-text-subtle">Name</label>
         <input

@@ -13,8 +13,19 @@ const crumbs: readonly BreadcrumbItem[] = [
   { label: 'Request Assistance' },
 ]
 const { assistIntro } = useGetSupportContent()
-const { form, errors, status, setName, setEmail, setPhone, setNeed, setMessage, submit, reset } =
-  useAssistanceForm()
+const {
+  form,
+  errors,
+  status,
+  errorMessage,
+  setName,
+  setEmail,
+  setPhone,
+  setNeed,
+  setMessage,
+  submit,
+  reset,
+} = useAssistanceForm()
 
 const nameErrorId = 'assist-name-error'
 const emailErrorId = 'assist-email-error'
@@ -35,9 +46,9 @@ const messageDescribedBy = computed((): string | undefined =>
   errors.value.message ? messageErrorId : undefined,
 )
 
-function handleSubmit(event: Event): void {
+async function handleSubmit(event: Event): Promise<void> {
   event.preventDefault()
-  submit()
+  await submit()
 }
 
 function handleInput(setter: (value: string) => void, event: Event): void {
@@ -63,6 +74,9 @@ function handleInput(setter: (value: string) => void, event: Event): void {
           Thank you. We have received your request and will reply within two business days.
         </p>
         <form v-else class="flex flex-col gap-4" novalidate @submit="handleSubmit">
+          <p v-if="status === 'error'" class="text-xs text-brand-accent" role="alert">
+            {{ errorMessage }}
+          </p>
           <div class="flex flex-col gap-1.5">
             <label for="assist-name" class="text-xs font-medium text-text-subtle">Name</label>
             <input

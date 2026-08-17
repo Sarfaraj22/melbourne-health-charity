@@ -1,16 +1,18 @@
 import { ref, type Ref } from 'vue'
+import { submitContact } from '@/services/firebase/firestore.service'
 import type { ContactFormErrors, ContactFormState, ContactFormStatus } from '@/types/contact'
 
 export interface UseContactFormReturn {
   readonly form: Ref<ContactFormState>
   readonly errors: Ref<ContactFormErrors>
   readonly status: Ref<ContactFormStatus>
+  readonly errorMessage: Ref<string>
   setName: (value: string) => void
   setEmail: (value: string) => void
   setPhone: (value: string) => void
   setSubject: (value: string) => void
   setMessage: (value: string) => void
-  submit: () => boolean
+  submit: () => Promise<boolean>
   reset: () => void
 }
 
@@ -61,6 +63,7 @@ export function useContactForm(): UseContactFormReturn {
   const form = ref<ContactFormState>(initialFormState())
   const errors = ref<ContactFormErrors>({})
   const status = ref<ContactFormStatus>('idle')
+  const errorMessage = ref<string>('')
 
   function setName(value: string): void {
     form.value = { ...form.value, name: value }
@@ -91,10 +94,12 @@ export function useContactForm(): UseContactFormReturn {
     form.value = initialFormState()
     errors.value = {}
     status.value = 'idle'
+    errorMessage.value = ''
   }
 
-  function submit(): boolean {
+  async function submit(): Promise<boolean> {
     status.value = 'submitting'
+    errorMessage.value = ''
     const validationErrors = validateForm(form.value)
     errors.value = validationErrors
 
@@ -103,15 +108,29 @@ export function useContactForm(): UseContactFormReturn {
       return false
     }
 
-    // No backend yet: simulate a successful submission.
-    status.value = 'success'
-    return true
+    try {
+      await submitContact({
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        phone: form.value.phone.trim(),
+        subject: form.value.subject.trim(),
+        message: form.value.message.trim(),
+        createdAt: Date.now(),
+      })
+      status.value = 'success'
+      return true
+    } catch {
+      status.value = 'error'
+      errorMessage.value = 'Unable to send your message right now. Please try again later.'
+      return false
+    }
   }
 
   return {
     form,
     errors,
     status,
+    errorMessage,
     setName,
     setEmail,
     setPhone,

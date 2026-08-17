@@ -10,6 +10,7 @@ const {
   form,
   errors,
   status,
+  errorMessage,
   availableInterests,
   availabilityOptions,
   setName,
@@ -52,9 +53,9 @@ const availabilityDescribedBy = computed((): string | undefined =>
   errors.value.availability ? availabilityErrorId : undefined,
 )
 
-function handleSubmit(event: Event): void {
+async function handleSubmit(event: Event): Promise<void> {
   event.preventDefault()
-  submit()
+  await submit()
 }
 
 function handleNameInput(event: Event): void {
@@ -135,6 +136,9 @@ function handleMessageInput(event: Event): void {
       </p>
 
       <form v-else class="flex max-w-xl flex-col gap-4" novalidate @submit="handleSubmit">
+        <p v-if="status === 'error'" class="text-xs text-brand-accent" role="alert">
+          {{ errorMessage }}
+        </p>
         <div class="flex flex-col gap-1.5">
           <label for="volunteer-name" class="text-xs font-medium text-text-subtle">Name</label>
           <input
