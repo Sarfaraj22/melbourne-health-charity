@@ -1,6 +1,319 @@
 rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Submission forms live on public pages and write without a signed-in
+// user. Each collection allows `create` only, with field-level
+// validation, and denies all other access. Staff review of submissions
+// is a later admin feature and is not exposed to clients here.
+//
+// Spam/abuse protection (reCAPTCHA + Cloud Function write throttling)
+// is a future enhancement; field validation here is a first line of
+// defence, not a security boundary on its own.
+//
+// Collection: contact_messages
+// Document ID: auto-id
+// Fields:
+//   - name: string (required, 1-200)
+//   - email: string (required, email format)
+//   - phone: string (optional, 0-40)
+//   - subject: string (required, 1-200)
+//   - message: string (required, 1-5000)
+//   - createdAt: timestamp (required, must equal request.time)
+//
+// Collection: assistance_requests
+// Document ID: auto-id
+// Fields:
+//   - name: string (required, 1-200)
+//   - email: string (required, email format)
+//   - phone: string (optional, 0-40)
+//   - need: string (required, 1-200)
+//   - message: string (required, 1-5000)
+//   - createdAt: timestamp (required, must equal request.time)
+//
+// Collection: donations
+// Document ID: auto-id
+// Fields:
+//   - amount: number (required, >= 2)
+//   - frequency: string (required, 'one-off' | 'monthly')
+//   - name: string (required, 1-200)
+//   - email: string (required, email format)
+//   - message: string (optional, 0-1000)
+//   - createdAt: timestamp (required, must equal request.time)
+//
+// Collection: volunteer_applications
+// Document ID: auto-id
+// Fields:
+//   - name: string (required, 1-200)
+//   - email: string (required, email format)
+//   - phone: string (required, 1-40)
+//   - interests: list of strings (required, 1-5 items, enum values)
+//   - availability: string (required, enum)
+//   - message: string (optional, 0-5000)
+//   - createdAt: timestamp (required, must equal request.time)
+//
+// Collection: event_registrations
+// Document ID: auto-id
+// Fields:
+//   - eventSlug: string (required, 1-200)
+//   - name: string (required, 1-200)
+//   - email: string (required, email format)
+//   - phone: string (required, 1-40)
+//   - attendees: string (required, 1-10)
+//   - accessibilityRequirements: string (optional, 0-2000)
+//   - optInUpdates: bool (required)
+//   - createdAt: timestamp (required, must equal request.time)
+//
+// Collection: appointments
+// Document ID: auto-id
+// Fields:
+//   - name: string (required, 1-200)
+//   - date: string (required, 1-20)
+//   - time: string (required, 1-20)
+//   - serviceSlug: string (required, 1-200)
+//   - supportType: string (required, enum)
+//   - accessibilityRequirements: string (optional, 0-2000)
+//   - transportRequired: string (required, 'yes' | 'no')
+//   - createdAt: timestamp (required, must equal request.time)
+//
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isNonEmptyString(value, maxLen) {
+      return value is string
+        && value.size() > 0
+        && value.size() <= maxLen;
+    }
+
+    function isOptionalString(value, maxLen) {
+      return value is string && value.size() <= maxLen;
+    }
+
+    function isValidEmail(value) {
+      return value is string
+        && value.size() > 0
+        && value.size() <= 254
+        && value.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+    }
+
+    function isServerCreatedAt() {
+      return request.resource.data.createdAt == request.time;
+    }
+
+    function isValidContact(data) {
+      return data.keys().hasOnly(['name', 'email', 'phone', 'subject', 'message', 'createdAt'])
+        && isNonEmptyString(data.name, 200)
+        && isValidEmail(data.email)
+        && isOptionalString(data.phone, 40)
+        && isNonEmptyString(data.subject, 200)
+        && isNonEmptyString(data.message, 5000)
+        && isServerCreatedAt();
+    }
+
+    function isValidAssistance(data) {
+      return data.keys().hasOnly(['name', 'email', 'phone', 'need', 'message', 'createdAt'])
+        && isNonEmptyString(data.name, 200)
+        && isValidEmail(data.email)
+        && isOptionalString(data.phone, 40)
+        && isNonEmptyString(data.need, 200)
+        && isNonEmptyString(data.message, 5000)
+        && isServerCreatedAt();
+    }
+
+    function isValidDonation(data) {
+      return data.keys().hasOnly(['amount', 'frequency', 'name', 'email', 'message', 'createdAt'])
+        && data.amount is number
+        && data.amount >= 2
+        && data.amount <= 1000000
+        && (data.frequency == 'one-off' || data.frequency == 'monthly')
+        && isNonEmptyString(data.name, 200)
+        && isValidEmail(data.email)
+        && isOptionalString(data.message, 1000)
+        && isServerCreatedAt();
+    }
+
+    function isValidInterestList(list) {
+      return list is list
+        && list.size() > 0
+        && list.size() <= 5
+        && list.hasOnly(['event-support', 'companionship', 'admin', 'outdoor', 'mentoring']);
+    }
+
+    function isValidVolunteerApplication(data) {
+      return data.keys().hasOnly([
+          'name', 'email', 'phone', 'interests', 'availability', 'message', 'createdAt'
+        ])
+        && isNonEmptyString(data.name, 200)
+        && isValidEmail(data.email)
+        && isNonEmptyString(data.phone, 40)
+        && isValidInterestList(data.interests)
+        && data.availability in ['weekday', 'weekend', 'evening', 'flexible']
+        && isOptionalString(data.message, 5000)
+        && isServerCreatedAt();
+    }
+
+    function isValidEventRegistration(data) {
+      return data.keys().hasOnly([
+          'eventSlug', 'name', 'email', 'phone', 'attendees',
+          'accessibilityRequirements', 'optInUpdates', 'createdAt'
+        ])
+        && isNonEmptyString(data.eventSlug, 200)
+        && isNonEmptyString(data.name, 200)
+        && isValidEmail(data.email)
+        && isNonEmptyString(data.phone, 40)
+        && isNonEmptyString(data.attendees, 10)
+        && isOptionalString(data.accessibilityRequirements, 2000)
+        && data.optInUpdates is bool
+        && isServerCreatedAt();
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasOnly([
+          'name', 'date', 'time', 'serviceSlug', 'supportType',
+          'accessibilityRequirements', 'transportRequired', 'createdAt'
+        ])
+        && isNonEmptyString(data.name, 200)
+        && isNonEmptyString(data.date, 20)
+        && isNonEmptyString(data.time, 20)
+        && isNonEmptyString(data.serviceSlug, 200)
+        && data.supportType in ['in-person', 'telehealth', 'phone']
+        && isOptionalString(data.accessibilityRequirements, 2000)
+        && (data.transportRequired == 'yes' || data.transportRequired == 'no')
+        && isServerCreatedAt();
+    }
+
+    // ===============================================================
+    // Admin helpers
+    // ===============================================================
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.role == 'admin';
+    }
+
+    function isValidVolunteerRecord(data) {
+      return data.keys().hasOnly([
+          'name', 'email', 'phone', 'status', 'trainingPercent', 'hours', 'createdAt'
+        ])
+        && isNonEmptyString(data.name, 200)
+        && isValidEmail(data.email)
+        && isOptionalString(data.phone, 40)
+        && data.status in ['active', 'pending']
+        && data.trainingPercent is number
+        && data.trainingPercent >= 0
+        && data.trainingPercent <= 100
+        && data.hours is number
+        && data.hours >= 0
+        && isServerCreatedAt();
+    }
+
+    function isValidEventRecord(data) {
+      return data.keys().hasOnly([
+          'title', 'slug', 'summary', 'description', 'date', 'time', 'location', 'status', 'createdAt'
+        ])
+        && isNonEmptyString(data.title, 200)
+        && isNonEmptyString(data.slug, 200)
+        && isOptionalString(data.summary, 500)
+        && isOptionalString(data.description, 5000)
+        && isNonEmptyString(data.date, 40)
+        && isOptionalString(data.time, 40)
+        && isOptionalString(data.location, 200)
+        && data.status in ['published', 'draft']
+        && isServerCreatedAt();
+    }
+
+    function isValidVolunteerHours(data) {
+      return data.keys().hasOnly([
+          'volunteerId', 'volunteerName', 'hours', 'month', 'createdAt'
+        ])
+        && isNonEmptyString(data.volunteerId, 200)
+        && isNonEmptyString(data.volunteerName, 200)
+        && data.hours is number
+        && data.hours > 0
+        && isNonEmptyString(data.month, 7)
+        && isServerCreatedAt();
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasOnly(['title', 'type', 'createdAt'])
+        && isNonEmptyString(data.title, 200)
+        && isNonEmptyString(data.type, 100)
+        && isServerCreatedAt();
+    }
+
+    match /contact_messages/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if isValidContact(request.resource.data);
+    }
+
+    match /assistance_requests/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if isValidAssistance(request.resource.data);
+    }
+
+    match /donations/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if isValidDonation(request.resource.data);
+    }
+
+    match /volunteer_applications/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if isValidVolunteerApplication(request.resource.data);
+    }
+
+    match /event_registrations/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if isValidEventRegistration(request.resource.data);
+    }
+
+    match /appointments/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if isValidAppointment(request.resource.data);
+    }
+
+    match /volunteers/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidVolunteerRecord(request.resource.data);
+      allow update: if isAdmin()
+        && request.resource.data.status in ['active', 'pending']
+        && request.resource.data.trainingPercent is number
+        && request.resource.data.trainingPercent >= 0
+        && request.resource.data.trainingPercent <= 100
+        && request.resource.data.hours is number
+        && request.resource.data.hours >= 0;
+      allow delete: if isAdmin();
+    }
+
+    match /events/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidEventRecord(request.resource.data);
+      allow update: if isAdmin()
+        && request.resource.data.status in ['published', 'draft'];
+      allow delete: if isAdmin();
+    }
+
+    match /volunteer_hours/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidVolunteerHours(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /reports/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidReport(request.resource.data);
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

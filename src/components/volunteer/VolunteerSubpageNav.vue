@@ -1,9 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import { useVolunteerContent } from '@/composables/useVolunteerContent'
+import { useAuthStore } from '@/stores/auth.store'
+
+interface ResolvedLink {
+  readonly id: string
+  readonly label: string
+  readonly to: string
+  readonly icon: string
+  readonly description: string
+}
 
 const { subpageLinks } = useVolunteerContent()
+const authStore = useAuthStore()
+
+const resolvedLinks = computed<readonly ResolvedLink[]>(() =>
+  subpageLinks.map((link) => {
+    if (link.to === '/volunteer/portal' && !authStore.isAuthenticated) {
+      return { ...link, to: '/login?redirect=/volunteer/portal' }
+    }
+    return link
+  }),
+)
 </script>
 
 <template>
@@ -13,7 +33,7 @@ const { subpageLinks } = useVolunteerContent()
         Explore volunteering
       </h2>
       <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <li v-for="link in subpageLinks" :key="link.id">
+        <li v-for="link in resolvedLinks" :key="link.id">
           <router-link
             :to="link.to"
             class="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
