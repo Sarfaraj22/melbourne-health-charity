@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import type { BreadcrumbItem } from '@/types/service'
+import type { AppCalendarEvent } from '@/types/calendar'
+import type { AdminEvent } from '@/types/admin'
 import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import AdminKpiCards from '@/components/admin/AdminKpiCards.vue'
 import AdminVolunteerTable from '@/components/admin/AdminVolunteerTable.vue'
+import AdminVolunteerApplicationsTable from '@/components/admin/AdminVolunteerApplicationsTable.vue'
+import AdminBulkEmail from '@/components/admin/AdminBulkEmail.vue'
 import AdminEventTable from '@/components/admin/AdminEventTable.vue'
 import AdminReportsAnalytics from '@/components/admin/AdminReportsAnalytics.vue'
+import AdminLiveChat from '@/components/admin/AdminLiveChat.vue'
 import AdminMessagesEnquiries from '@/components/admin/AdminMessagesEnquiries.vue'
 import AdminSecurityCompliance from '@/components/admin/AdminSecurityCompliance.vue'
 import { useAdminDashboardData } from '@/composables/useAdminDashboardData'
 import { useAuthStore } from '@/stores/auth.store'
 import { deleteEvent, deleteVolunteer, updateEvent } from '@/services/firebase/firestore.service'
+import { toCalendarEvent } from '@/utils/datetime'
+
+const AppCalendar = defineAsyncComponent(() => import('@/components/ui/AppCalendar.vue'))
 
 const authStore = useAuthStore()
 const { loading, error, data } = useAdminDashboardData()
@@ -25,11 +33,31 @@ const firstName = computed<string>(() => {
 
 const crumbs: readonly BreadcrumbItem[] = [{ label: 'Home', to: '/' }, { label: 'Admin Dashboard' }]
 
+function mapAdminEventsToCalendar(events: readonly AdminEvent[]): readonly AppCalendarEvent[] {
+  const mapped: AppCalendarEvent[] = []
+  for (const event of events) {
+    const calendarEvent = toCalendarEvent(
+      event.title,
+      event.date,
+      event.time,
+      `/admin/events/${event.id}/edit`,
+    )
+    if (calendarEvent !== undefined) {
+      mapped.push(calendarEvent)
+    }
+  }
+  return mapped
+}
+
+const calendarEvents = computed((): readonly AppCalendarEvent[] =>
+  mapAdminEventsToCalendar(data.value.events),
+)
+
 async function handlePublishEvent(id: string): Promise<void> {
   try {
     await updateEvent(id, { status: 'published' })
   } catch {
-    // Error is surfaced via the onSnapshot listener; no console output.
+    return
   }
 }
 
@@ -37,7 +65,7 @@ async function handleDeleteVolunteer(id: string): Promise<void> {
   try {
     await deleteVolunteer(id)
   } catch {
-    // Error is surfaced via the onSnapshot listener; no console output.
+    return
   }
 }
 
@@ -45,7 +73,7 @@ async function handleDeleteEvent(id: string): Promise<void> {
   try {
     await deleteEvent(id)
   } catch {
-    // Error is surfaced via the onSnapshot listener; no console output.
+    return
   }
 }
 </script>
@@ -76,13 +104,28 @@ async function handleDeleteEvent(id: string): Promise<void> {
     <div v-else class="flex flex-col">
       <AdminKpiCards :cards="data.kpiCards" />
       <AdminVolunteerTable :volunteers="data.volunteers" @delete="handleDeleteVolunteer" />
+      <AdminVolunteerApplicationsTable :applications="data.applications" />
+      <AdminBulkEmail :volunteers="data.volunteers" />
+      <section class="bg-surface px-5 py-6 sm:px-8" aria-labelledby="admin-event-calendar-heading">
+        <div class="mx-auto flex max-w-container flex-col gap-4">
+          <h2 id="admin-event-calendar-heading" class="text-2xl font-bold text-text-default">
+            Event calendar
+          </h2>
+          <AppCalendar :events="calendarEvents" />
+        </div>
+      </section>
       <AdminEventTable
         :events="data.events"
         @publish="handlePublishEvent"
         @delete="handleDeleteEvent"
       />
       <AdminReportsAnalytics :chart-bars="data.chartBars" :metrics="data.reportMetrics" />
-      <AdminMessagesEnquiries :messages="data.messages" />
+      <AdminLiveChat :chats="data.liveChats" />
+      <AdminMessagesEnquiries
+        :messages="data.messages"
+        :inbox-messages="data.inboxMessages"
+        :profiles="data.profiles"
+      />
       <AdminSecurityCompliance :features="data.complianceFeatures" />
     </div>
   </div>
