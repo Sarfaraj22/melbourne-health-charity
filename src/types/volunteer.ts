@@ -79,6 +79,8 @@ export interface VolunteerMessage {
   readonly id: string
   readonly sender: string
   readonly preview: string
+  readonly body: string
+  readonly fromRole: 'admin' | 'user' | 'volunteer'
 }
 
 export interface VolunteerCoordinator {
@@ -116,6 +118,7 @@ export interface VolunteerApplicationFormState {
   readonly name: string
   readonly email: string
   readonly phone: string
+  readonly address: string
   readonly interests: ReadonlySet<VolunteerOpportunityCategory>
   readonly availability: VolunteerAvailability | ''
   readonly message: string
@@ -125,6 +128,7 @@ export interface VolunteerApplicationFormErrors {
   readonly name?: string
   readonly email?: string
   readonly phone?: string
+  readonly address?: string
   readonly interests?: string
   readonly availability?: string
 }

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import AppIcon from '@/components/ui/AppIcon.vue'
 import lockIcon from '@/assets/icons/lock.svg?raw'
-import { useDashboardContent } from '@/composables/useDashboardContent'
+import { useUserDashboardData } from '@/composables/useUserDashboardData'
 
-const { content } = useDashboardContent()
-const messages = content.messages
+const { messages } = useUserDashboardData()
 </script>
 
 <template>
@@ -24,7 +23,8 @@ const messages = content.messages
       <p class="text-xs text-text-subtle">End-to-end encrypted</p>
     </div>
 
-    <ul class="flex flex-col divide-y divide-border-default">
+    <p v-if="messages.length === 0" class="text-sm text-text-muted">You have no messages yet.</p>
+    <ul v-else class="flex flex-col divide-y divide-border-default">
       <li v-for="message in messages" :key="message.id" class="flex flex-col gap-1 py-3">
         <p class="text-sm font-bold text-text-default">{{ message.sender }}</p>
         <p class="text-sm text-text-muted">{{ message.preview }}</p>

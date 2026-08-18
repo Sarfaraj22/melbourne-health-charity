@@ -1,9 +1,29 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
-import { useHomeContent } from '@/composables/useHomeContent'
+import { useEventsContent } from '@/composables/useEventsContent'
+import type { EventItem } from '@/types/home'
 
-const { events } = useHomeContent()
+const { events, loading } = useEventsContent()
+
+const homeEvents = computed((): readonly EventItem[] =>
+  events.value
+    .filter((event) => event.status !== 'past')
+    .slice(0, 3)
+    .map((event) => ({
+      id: event.slug,
+      dateBadge: event.dateBadge,
+      title: event.title,
+      description: event.summary,
+      image: event.images.image,
+      imageJpg: event.images.imageJpg,
+      imageSmall: event.images.imageSmall,
+      imageSmallJpg: event.images.imageSmallJpg,
+      imageAlt: event.images.imageAlt,
+      detailsTo: `/events/${event.slug}`,
+    })),
+)
 </script>
 
 <template>
@@ -20,8 +40,12 @@ const { events } = useHomeContent()
           View all events →
         </router-link>
       </div>
-      <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <li v-for="event in events" :key="event.id">
+      <p v-if="loading" class="text-base text-text-muted">Loading events…</p>
+      <p v-else-if="homeEvents.length === 0" class="text-base text-text-muted">
+        There are no upcoming events right now. Check back soon.
+      </p>
+      <ul v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <li v-for="event in homeEvents" :key="event.id">
           <BaseCard interactive>
             <ResponsiveImage
               :image="event.image"

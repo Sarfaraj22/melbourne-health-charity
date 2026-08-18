@@ -40,6 +40,12 @@ defineProps<Props>()
           Future event
         </span>
         <span
+          v-else-if="event.status === 'past'"
+          class="inline-block w-fit rounded border border-border-strong px-2.5 py-1 text-xs font-bold text-text-subtle"
+        >
+          Past event
+        </span>
+        <span
           v-else
           class="inline-block w-fit rounded border border-brand-accent px-2.5 py-1 text-xs font-bold text-brand-accent"
         >

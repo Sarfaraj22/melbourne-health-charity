@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { useVolunteerContent } from '@/composables/useVolunteerContent'
+import { useVolunteerPortalData } from '@/composables/useVolunteerPortalData'
 
-const { dashboard } = useVolunteerContent()
-const { profile, trainingProgress } = dashboard
+const { profile, trainingProgress } = useVolunteerPortalData()
 </script>
 
 <template>

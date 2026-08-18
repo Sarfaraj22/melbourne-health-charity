@@ -368,16 +368,22 @@ const dashboard: VolunteerDashboardContent = {
       id: 'coordinator-team',
       sender: 'Coordinator Team',
       preview: 'Reminder: training session confirmed for 28 Sep.',
+      body: 'Reminder: training session confirmed for 28 Sep.',
+      fromRole: 'admin',
     },
     {
       id: 'events-team',
       sender: 'Events Team',
       preview: 'Thanks for signing up to the Fun Run - see you there!',
+      body: 'Thanks for signing up to the Fun Run - see you there!',
+      fromRole: 'admin',
     },
     {
       id: 'system',
       sender: 'System',
       preview: 'Your certificate for First Aid Training is now available.',
+      body: 'Your certificate for First Aid Training is now available.',
+      fromRole: 'admin',
     },
   ],
   coordinator: {

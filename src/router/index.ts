@@ -102,6 +102,10 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Book an Appointment' },
   },
   {
+    path: '/get-support/chat',
+    redirect: '/get-support/live-chat',
+  },
+  {
     path: '/get-support/live-chat',
     name: 'get-support-chat',
     component: () => import('@/views/GetSupportChatView.vue'),

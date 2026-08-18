@@ -12,6 +12,8 @@ export interface DashboardMessage {
   readonly id: string
   readonly sender: string
   readonly preview: string
+  readonly body: string
+  readonly fromRole: 'admin' | 'user' | 'volunteer'
   readonly receivedAt: string
 }
 
@@ -42,9 +44,5 @@ export interface DashboardSettingsRow {
 
 export interface DashboardContent {
   readonly greetingSubtitle: string
-  readonly upcomingAppointment: DashboardAppointment
-  readonly messages: readonly DashboardMessage[]
-  readonly savedResources: readonly DashboardSavedResource[]
-  readonly upcomingEvents: readonly DashboardUpcomingEvent[]
   readonly settingsRows: readonly DashboardSettingsRow[]
 }

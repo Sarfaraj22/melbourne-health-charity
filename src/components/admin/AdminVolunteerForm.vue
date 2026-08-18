@@ -19,6 +19,7 @@ interface Emits {
   (event: 'update-name', value: string): void
   (event: 'update-email', value: string): void
   (event: 'update-phone', value: string): void
+  (event: 'update-address', value: string): void
   (event: 'update-status', value: AdminVolunteerStatus): void
   (event: 'update-training-percent', value: string): void
   (event: 'update-hours', value: string): void
@@ -29,6 +30,13 @@ const emit = defineEmits<Emits>()
 
 const isSubmitting = computed<boolean>(() => props.status === 'submitting')
 const isSuccess = computed<boolean>(() => props.status === 'success')
+
+function handleAddressInput(event: Event): void {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    emit('update-address', target.value)
+  }
+}
 </script>
 
 <template>
@@ -38,6 +46,7 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
       <input
         id="volunteer-name"
         type="text"
+        required
         :value="form.name"
         :disabled="isSubmitting"
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
@@ -51,6 +60,7 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
       <input
         id="volunteer-email"
         type="email"
+        required
         :value="form.email"
         :disabled="isSubmitting"
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
@@ -68,6 +78,19 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
         :disabled="isSubmitting"
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
         @input="emit('update-phone', ($event.target as HTMLInputElement).value)"
+      />
+      <p v-if="errors.phone" class="text-sm text-brand-donate">{{ errors.phone }}</p>
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label for="volunteer-address" class="text-sm font-medium text-text-default">Address</label>
+      <input
+        id="volunteer-address"
+        type="text"
+        :value="form.address"
+        :disabled="isSubmitting"
+        class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
+        @input="handleAddressInput"
       />
     </div>
 
@@ -97,6 +120,7 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
         type="number"
         min="0"
         max="100"
+        required
         :value="form.trainingPercent"
         :disabled="isSubmitting"
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
@@ -113,6 +137,7 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
         id="volunteer-hours"
         type="number"
         min="0"
+        required
         :value="form.hours"
         :disabled="isSubmitting"
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"

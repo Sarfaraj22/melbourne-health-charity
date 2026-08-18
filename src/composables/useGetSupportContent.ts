@@ -51,7 +51,7 @@ export function useGetSupportContent(): GetSupportContent {
     chatIntro:
       'Live chat is available Monday to Friday, 9:00am – 5:00pm. Outside those hours, use the request form or phone 1800 123 456.',
     chatUnavailable:
-      'Live chat is not available right now. Please use request assistance, phone, or the contact form.',
+      'If no one replies immediately, leave your message and we will follow up by email.',
     assistIntro:
       'Describe what you need — NDIS help, a callback, or support for a carer. We will reply within two business days.',
   }

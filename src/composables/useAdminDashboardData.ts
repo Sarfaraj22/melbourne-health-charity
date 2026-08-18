@@ -2,9 +2,12 @@ import { computed, onMounted, onUnmounted, ref, type ComputedRef, type Ref } fro
 import {
   countContactMessages,
   getRecentContactMessages,
-  getRecentVolunteerApplications,
   subscribeEvents,
+  subscribeInboxMessages,
+  subscribeLiveChats,
+  subscribeProfiles,
   subscribeReports,
+  subscribeVolunteerApplications,
   subscribeVolunteerHours,
   subscribeVolunteers,
   type WithId,
@@ -14,18 +17,26 @@ import type {
   AdminComplianceFeature,
   AdminDashboardData,
   AdminEvent,
+  AdminInboxThread,
   AdminKpiCard,
+  AdminLiveChatThread,
   AdminMessage,
+  AdminProfile,
   AdminReportMetric,
   AdminVolunteer,
+  AdminVolunteerApplication,
 } from '@/types/admin'
 import type {
   EventRecordDoc,
+  InboxMessageDoc,
+  LiveChatDoc,
+  ProfileDoc,
   ReportDoc,
+  VolunteerApplicationDoc,
   VolunteerHoursDoc,
   VolunteerRecordDoc,
 } from '@/types/firestore'
-import type { ContactMessageDoc, VolunteerApplicationDoc } from '@/types/firestore'
+import type { ContactMessageDoc } from '@/types/firestore'
 
 export interface UseAdminDashboardDataReturn {
   readonly loading: Ref<boolean>
@@ -110,9 +121,56 @@ function mapVolunteer(record: WithId<VolunteerRecordDoc>): AdminVolunteer {
     name: record.data.name,
     email: record.data.email,
     phone: record.data.phone,
+    address: record.data.address,
     status: record.data.status,
     trainingPercent: record.data.trainingPercent,
     hours: record.data.hours,
+    createdAt: record.data.createdAt,
+  }
+}
+
+function mapApplication(record: WithId<VolunteerApplicationDoc>): AdminVolunteerApplication {
+  return {
+    id: record.id,
+    name: record.data.name,
+    email: record.data.email,
+    phone: record.data.phone,
+    address: record.data.address,
+    interests: record.data.interests,
+    availability: record.data.availability,
+    message: record.data.message,
+    status: record.data.status,
+    createdAt: record.data.createdAt,
+  }
+}
+
+function mapProfile(record: WithId<ProfileDoc>): AdminProfile {
+  return {
+    uid: record.data.uid,
+    displayName: record.data.displayName,
+    email: record.data.email,
+    role: record.data.role,
+  }
+}
+
+function mapLiveChat(record: WithId<LiveChatDoc>): AdminLiveChatThread {
+  return {
+    id: record.id,
+    guestName: record.data.guestName,
+    guestEmail: record.data.guestEmail,
+    status: record.data.status,
+    createdAt: record.data.createdAt,
+    updatedAt: record.data.updatedAt,
+  }
+}
+
+function mapInbox(record: WithId<InboxMessageDoc>): AdminInboxThread {
+  return {
+    id: record.id,
+    userId: record.data.userId,
+    sender: record.data.sender,
+    body: record.data.body,
+    fromRole: record.data.fromRole,
     createdAt: record.data.createdAt,
   }
 }
@@ -165,25 +223,15 @@ function buildReportMetrics(
   ]
 }
 
-function buildMessages(
-  contacts: readonly WithId<ContactMessageDoc>[],
-  applications: readonly WithId<VolunteerApplicationDoc>[],
-): readonly AdminMessage[] {
-  const contactMessages: AdminMessage[] = contacts.map((c) => ({
-    id: c.id,
-    sender: `${c.data.name} (Enquiry)`,
-    preview: c.data.message,
-    kind: 'enquiry' as const,
-    createdAt: c.data.createdAt,
-  }))
-  const volunteerMessages: AdminMessage[] = applications.map((a) => ({
-    id: a.id,
-    sender: `${a.data.name} (Volunteer)`,
-    preview: a.data.message,
-    kind: 'volunteer' as const,
-    createdAt: a.data.createdAt,
-  }))
-  return [...contactMessages, ...volunteerMessages]
+function buildMessages(contacts: readonly WithId<ContactMessageDoc>[]): readonly AdminMessage[] {
+  return contacts
+    .map((c) => ({
+      id: c.id,
+      sender: `${c.data.name} (Enquiry)`,
+      preview: c.data.message,
+      kind: 'enquiry' as const,
+      createdAt: c.data.createdAt,
+    }))
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 5)
 }
@@ -193,16 +241,24 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
   const error = ref<string>('')
 
   const volunteers = ref<readonly AdminVolunteer[]>([])
+  const applications = ref<readonly AdminVolunteerApplication[]>([])
   const events = ref<readonly AdminEvent[]>([])
   const chartBars = ref<readonly AdminChartBar[]>([])
   const reportMetrics = ref<readonly AdminReportMetric[]>([])
   const messages = ref<readonly AdminMessage[]>([])
+  const inboxMessages = ref<readonly AdminInboxThread[]>([])
+  const profiles = ref<readonly AdminProfile[]>([])
+  const liveChats = ref<readonly AdminLiveChatThread[]>([])
   const openEnquiries = ref<number>(0)
 
   let unsubVolunteers: (() => void) | undefined
+  let unsubApplications: (() => void) | undefined
   let unsubEvents: (() => void) | undefined
   let unsubHours: (() => void) | undefined
   let unsubReports: (() => void) | undefined
+  let unsubInbox: (() => void) | undefined
+  let unsubProfiles: (() => void) | undefined
+  let unsubLiveChats: (() => void) | undefined
 
   function handleError(message: string): void {
     error.value = message
@@ -229,6 +285,16 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
         checkReady()
       },
       () => handleError('Unable to load volunteers.'),
+    )
+
+    unsubApplications = subscribeVolunteerApplications(
+      (records) => {
+        applications.value = records
+          .slice()
+          .sort((left, right) => right.data.createdAt - left.data.createdAt)
+          .map(mapApplication)
+      },
+      () => handleError('Unable to load volunteer applications.'),
     )
 
     unsubEvents = subscribeEvents(
@@ -264,10 +330,36 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
       () => handleError('Unable to load reports.'),
     )
 
+    unsubInbox = subscribeInboxMessages(
+      (records) => {
+        inboxMessages.value = records
+          .slice()
+          .sort((left, right) => right.data.createdAt - left.data.createdAt)
+          .map(mapInbox)
+      },
+      () => handleError('Unable to load dashboard messages.'),
+    )
+
+    unsubProfiles = subscribeProfiles(
+      (records) => {
+        profiles.value = records.map(mapProfile)
+      },
+      () => handleError('Unable to load recipient profiles.'),
+    )
+
+    unsubLiveChats = subscribeLiveChats(
+      (records) => {
+        liveChats.value = records
+          .slice()
+          .sort((left, right) => right.data.updatedAt - left.data.updatedAt)
+          .map(mapLiveChat)
+      },
+      () => handleError('Unable to load live chats.'),
+    )
+
     void getRecentContactMessages(5)
-      .then(async (contacts) => {
-        const applications = await getRecentVolunteerApplications(5)
-        messages.value = buildMessages(contacts, applications)
+      .then((contacts) => {
+        messages.value = buildMessages(contacts)
       })
       .catch(() => handleError('Unable to load messages.'))
 
@@ -280,9 +372,13 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
 
   onUnmounted(() => {
     unsubVolunteers?.()
+    unsubApplications?.()
     unsubEvents?.()
     unsubHours?.()
     unsubReports?.()
+    unsubInbox?.()
+    unsubProfiles?.()
+    unsubLiveChats?.()
   })
 
   const kpiCards = computed<readonly AdminKpiCard[]>(() => {
@@ -321,10 +417,14 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
     greetingSubtitle,
     kpiCards: kpiCards.value,
     volunteers: volunteers.value,
+    applications: applications.value,
     events: events.value,
     chartBars: chartBars.value,
     reportMetrics: reportMetrics.value,
     messages: messages.value,
+    inboxMessages: inboxMessages.value,
+    profiles: profiles.value,
+    liveChats: liveChats.value,
     complianceFeatures,
   }))
 

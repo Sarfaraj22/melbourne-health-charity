@@ -1,6 +1,11 @@
 import { ref, type Ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
-import type { AuthResult, LoginFormErrors, LoginFormState } from '@/types/auth'
+import {
+  fieldErrorsFromAuthError,
+  type AuthResult,
+  type LoginFormErrors,
+  type LoginFormState,
+} from '@/types/auth'
 
 export interface UseLoginFormReturn {
   readonly form: Ref<LoginFormState>
@@ -83,6 +88,7 @@ export function useLoginForm(): UseLoginFormReturn {
     if (!result.success) {
       status.value = 'error'
       errorMessage.value = result.error?.message ?? 'Unable to sign in. Please try again.'
+      errors.value = { ...errors.value, ...fieldErrorsFromAuthError(result.error) }
       return result
     }
     status.value = 'idle'

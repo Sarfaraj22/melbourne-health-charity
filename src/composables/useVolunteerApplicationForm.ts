@@ -21,6 +21,7 @@ export interface UseVolunteerApplicationFormReturn {
   setName: (value: string) => void
   setEmail: (value: string) => void
   setPhone: (value: string) => void
+  setAddress: (value: string) => void
   toggleInterest: (id: VolunteerOpportunityCategory) => void
   setAvailability: (value: VolunteerAvailability | '') => void
   setMessage: (value: string) => void
@@ -50,6 +51,7 @@ const initialFormState = (): VolunteerApplicationFormState => ({
   name: '',
   email: '',
   phone: '',
+  address: '',
   interests: new Set(),
   availability: '',
   message: '',
@@ -72,6 +74,10 @@ function validateForm(state: VolunteerApplicationFormState): VolunteerApplicatio
 
   if (!state.phone.trim()) {
     errors.phone = 'Please enter a contact number.'
+  }
+
+  if (!state.address.trim()) {
+    errors.address = 'Please enter your address.'
   }
 
   if (state.interests.size === 0) {
@@ -109,6 +115,13 @@ export function useVolunteerApplicationForm(): UseVolunteerApplicationFormReturn
     form.value = { ...form.value, phone: value }
     const next = { ...errors.value }
     delete next.phone
+    errors.value = next
+  }
+
+  function setAddress(value: string): void {
+    form.value = { ...form.value, address: value }
+    const next = { ...errors.value }
+    delete next.address
     errors.value = next
   }
 
@@ -165,9 +178,11 @@ export function useVolunteerApplicationForm(): UseVolunteerApplicationFormReturn
         name: form.value.name.trim(),
         email: form.value.email.trim(),
         phone: form.value.phone.trim(),
+        address: form.value.address.trim(),
         interests: Array.from(form.value.interests).sort(),
         availability,
         message: form.value.message.trim(),
+        status: 'pending',
         createdAt: Date.now(),
       })
       status.value = 'success'
@@ -189,6 +204,7 @@ export function useVolunteerApplicationForm(): UseVolunteerApplicationFormReturn
     setName,
     setEmail,
     setPhone,
+    setAddress,
     toggleInterest,
     setAvailability,
     setMessage,

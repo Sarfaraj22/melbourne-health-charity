@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDateTimePicker from '@/components/ui/AppDateTimePicker.vue'
 import type { AdminEventStatus, AdminFormStatus } from '@/types/admin'
 import type { EventFormErrors, EventFormState } from '@/types/admin'
 
@@ -40,6 +41,7 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
       <input
         id="event-title"
         type="text"
+        required
         :value="form.title"
         :disabled="isSubmitting"
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
@@ -88,33 +90,24 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
       />
     </div>
 
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-      <div class="flex flex-col gap-1.5">
-        <label for="event-date" class="text-sm font-medium text-text-default">Date</label>
-        <input
-          id="event-date"
-          type="text"
-          :value="form.date"
-          :disabled="isSubmitting"
-          placeholder="e.g. 12 Sep 2026"
-          class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
-          @input="emit('update-date', ($event.target as HTMLInputElement).value)"
-        />
-        <p v-if="errors.date" class="text-sm text-brand-donate">{{ errors.date }}</p>
-      </div>
-
-      <div class="flex flex-col gap-1.5">
-        <label for="event-time" class="text-sm font-medium text-text-default">Time</label>
-        <input
-          id="event-time"
-          type="text"
-          :value="form.time"
-          :disabled="isSubmitting"
-          placeholder="e.g. 10:00am"
-          class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
-          @input="emit('update-time', ($event.target as HTMLInputElement).value)"
-        />
-      </div>
+    <div class="flex flex-col gap-1.5">
+      <p id="event-date-label" class="text-sm font-medium text-text-default">Date and time</p>
+      <AppDateTimePicker
+        :date="form.date"
+        :time="form.time"
+        date-input-id="event-date"
+        time-input-id="event-time"
+        :allow-past="true"
+        time-mode="text"
+        :date-invalid="errors.date !== undefined"
+        :time-invalid="false"
+        date-described-by=""
+        time-described-by=""
+        :disabled="isSubmitting"
+        @update:date="emit('update-date', $event)"
+        @update:time="emit('update-time', $event)"
+      />
+      <p v-if="errors.date" class="text-sm text-brand-donate">{{ errors.date }}</p>
     </div>
 
     <div class="flex flex-col gap-1.5">

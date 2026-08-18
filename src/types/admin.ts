@@ -9,10 +9,40 @@ export interface AdminVolunteer {
   readonly name: string
   readonly email: string
   readonly phone: string
+  readonly address: string
   readonly status: AdminVolunteerStatus
   readonly trainingPercent: number
   readonly hours: number
   readonly createdAt: number
+}
+
+export interface AdminVolunteerApplication {
+  readonly id: string
+  readonly name: string
+  readonly email: string
+  readonly phone: string
+  readonly address: string
+  readonly interests: readonly string[]
+  readonly availability: string
+  readonly message: string
+  readonly status: 'pending' | 'approved' | 'denied'
+  readonly createdAt: number
+}
+
+export interface AdminLiveChatThread {
+  readonly id: string
+  readonly guestName: string
+  readonly guestEmail: string
+  readonly status: 'open' | 'closed'
+  readonly createdAt: number
+  readonly updatedAt: number
+}
+
+export interface AdminProfile {
+  readonly uid: string
+  readonly displayName: string
+  readonly email: string
+  readonly role: 'admin' | 'user' | 'volunteer'
 }
 
 export interface AdminEvent {
@@ -82,17 +112,31 @@ export interface AdminDashboardData {
   readonly greetingSubtitle: string
   readonly kpiCards: readonly AdminKpiCard[]
   readonly volunteers: readonly AdminVolunteer[]
+  readonly applications: readonly AdminVolunteerApplication[]
   readonly events: readonly AdminEvent[]
   readonly chartBars: readonly AdminChartBar[]
   readonly reportMetrics: readonly AdminReportMetric[]
   readonly messages: readonly AdminMessage[]
+  readonly inboxMessages: readonly AdminInboxThread[]
+  readonly profiles: readonly AdminProfile[]
+  readonly liveChats: readonly AdminLiveChatThread[]
   readonly complianceFeatures: readonly AdminComplianceFeature[]
+}
+
+export interface AdminInboxThread {
+  readonly id: string
+  readonly userId: string
+  readonly sender: string
+  readonly body: string
+  readonly fromRole: 'admin' | 'user' | 'volunteer'
+  readonly createdAt: number
 }
 
 export interface VolunteerFormState {
   readonly name: string
   readonly email: string
   readonly phone: string
+  readonly address: string
   readonly status: AdminVolunteerStatus
   readonly trainingPercent: string
   readonly hours: string
@@ -102,6 +146,7 @@ export interface VolunteerFormErrors {
   readonly name?: string
   readonly email?: string
   readonly phone?: string
+  readonly address?: string
   readonly trainingPercent?: string
   readonly hours?: string
 }

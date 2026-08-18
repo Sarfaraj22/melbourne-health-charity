@@ -15,6 +15,7 @@ const {
   setName,
   setEmail,
   setPhone,
+  setAddress,
   setStatus,
   setTrainingPercent,
   setHours,
@@ -54,6 +55,7 @@ async function handleSubmit(): Promise<void> {
             @update-name="setName"
             @update-email="setEmail"
             @update-phone="setPhone"
+            @update-address="setAddress"
             @update-status="setStatus"
             @update-training-percent="setTrainingPercent"
             @update-hours="setHours"

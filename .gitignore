@@ -14,6 +14,8 @@ dist-ssr
 # Firebase service account keys (seed script only — never commit)
 service-account*.json
 **/service-account*.json
+*firebase-adminsdk*.json
+**/*firebase-adminsdk*.json
 
 # OS / editor
 .DS_Store
@@ -35,10 +37,9 @@ git-feature.md
 git.md
 .ua/
 
-# Documentation — keep README.md tracked, ignore all other markdown
+# Documentation — keep README.md tracked; CONTEXT.md stays local
 *.md
 !README.md
-!scripts/seed-users.README.md
 
 # Scripts (setup/tooling scripts — not part of the shipped app)
 *.sh
@@ -47,6 +48,7 @@ git.md
 *.ps1
 *.bat
 *.cmd
+scripts/
 
 # Prompts
 prompts/

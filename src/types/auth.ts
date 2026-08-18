@@ -18,9 +18,12 @@ export interface AuthUser {
   readonly role: Role
 }
 
+export type AuthErrorField = 'email' | 'password'
+
 export interface AuthError {
   readonly code: string
   readonly message: string
+  readonly field?: AuthErrorField
 }
 
 export type AuthState =
@@ -66,4 +69,17 @@ export interface ForgotPasswordFormErrors {
 export interface AuthResult {
   readonly success: boolean
   readonly error?: AuthError
+}
+
+export function fieldErrorsFromAuthError(error: AuthError | undefined): {
+  readonly email?: string
+  readonly password?: string
+} {
+  if (error === undefined || error.field === undefined) {
+    return {}
+  }
+  if (error.field === 'email') {
+    return { email: error.message }
+  }
+  return { password: error.message }
 }

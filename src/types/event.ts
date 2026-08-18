@@ -1,6 +1,7 @@
+import type { ComputedRef } from 'vue'
 import type { ServiceImageSet } from '@/types/service'
 
-export type EventStatus = 'current' | 'future'
+export type EventStatus = 'current' | 'future' | 'past'
 
 export interface EventDetail {
   readonly slug: string
@@ -34,7 +35,7 @@ export interface EventRegistrationFormErrors {
 }
 
 export interface EventsContent {
-  readonly events: readonly EventDetail[]
-  readonly currentEvents: readonly EventDetail[]
-  readonly futureEvents: readonly EventDetail[]
+  readonly events: ComputedRef<readonly EventDetail[]>
+  readonly currentEvents: ComputedRef<readonly EventDetail[]>
+  readonly futureEvents: ComputedRef<readonly EventDetail[]>
 }

@@ -2,10 +2,9 @@
 import type { BreadcrumbItem } from '@/types/service'
 import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
-import { useDashboardContent } from '@/composables/useDashboardContent'
+import { useUserDashboardData } from '@/composables/useUserDashboardData'
 
-const { content } = useDashboardContent()
-const events = content.upcomingEvents
+const { eventBookings } = useUserDashboardData()
 
 const crumbs: readonly BreadcrumbItem[] = [
   { label: 'Home', to: '/' },
@@ -16,9 +15,18 @@ const crumbs: readonly BreadcrumbItem[] = [
 
 <template>
   <DashboardLayout :crumbs="crumbs" heading="Event Bookings">
-    <ul class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <p v-if="eventBookings.length === 0" class="text-base text-text-muted">
+      You have not registered for any events yet.
+      <router-link
+        to="/events"
+        class="font-medium text-brand-primary underline hover:text-brand-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+      >
+        Browse events
+      </router-link>
+    </p>
+    <ul v-else class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <li
-        v-for="event in events"
+        v-for="event in eventBookings"
         :key="event.id"
         class="flex flex-col gap-2 rounded-md border border-border-default bg-surface p-4"
       >

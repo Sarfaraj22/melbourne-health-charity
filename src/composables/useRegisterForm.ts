@@ -1,6 +1,11 @@
 import { ref, type Ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
-import type { AuthResult, RegisterFormErrors, RegisterFormState } from '@/types/auth'
+import {
+  fieldErrorsFromAuthError,
+  type AuthResult,
+  type RegisterFormErrors,
+  type RegisterFormState,
+} from '@/types/auth'
 
 export interface UseRegisterFormReturn {
   readonly form: Ref<RegisterFormState>
@@ -114,6 +119,7 @@ export function useRegisterForm(): UseRegisterFormReturn {
       status.value = 'error'
       errorMessage.value =
         result.error?.message ?? 'Unable to create your account. Please try again.'
+      errors.value = { ...errors.value, ...fieldErrorsFromAuthError(result.error) }
       return result
     }
     status.value = 'idle'

@@ -33,6 +33,5 @@ export interface NewsItem {
 
 export interface HomeContent {
   readonly quickAccess: readonly QuickAccessItem[]
-  readonly events: readonly EventItem[]
   readonly news: readonly NewsItem[]
 }

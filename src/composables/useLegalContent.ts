@@ -27,7 +27,7 @@ const accessibilityStatement: LegalDocument = {
       id: 'contact-access',
       heading: 'Requesting information in another format',
       paragraphs: [
-        'You can ask for Easy Read, large print, or an Auslan interpreter for appointments. Call 1800 123 456 or email hello@charity.org.au, Monday to Friday, 9:00am – 5:00pm.',
+        'You can ask for Easy Read, large print, or an Auslan interpreter for appointments. Call 1800 123 456 or email inquiry@melbournehealth.org.au, Monday to Friday, 9:00am – 5:00pm.',
       ],
     },
   ],
@@ -60,7 +60,7 @@ const privacyPolicy: LegalDocument = {
       id: 'your-rights',
       heading: 'Access and correction',
       paragraphs: [
-        'You can ask to see or correct personal information we hold about you. Email hello@charity.org.au or write to 123 Support Street, Melbourne VIC 3000.',
+        'You can ask to see or correct personal information we hold about you. Email inquiry@melbournehealth.org.au or write to 123 Support Street, Melbourne VIC 3000.',
         'If you are not satisfied with how we handle a privacy matter, you can contact the Office of the Australian Information Commissioner.',
       ],
     },
@@ -125,7 +125,7 @@ const cookiePolicy: LegalDocument = {
       heading: 'How to control cookies',
       paragraphs: [
         'You can delete or block cookies in your browser settings. Blocking essential cookies may affect how some pages work.',
-        'Questions about this policy can be sent to hello@charity.org.au.',
+        'Questions about this policy can be sent to inquiry@melbournehealth.org.au.',
       ],
     },
   ],

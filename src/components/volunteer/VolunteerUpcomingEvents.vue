@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import BaseCard from '@/components/ui/BaseCard.vue'
 import ResponsiveImage from '@/components/ui/ResponsiveImage.vue'
-import { useVolunteerContent } from '@/composables/useVolunteerContent'
+import { useVolunteerPortalData } from '@/composables/useVolunteerPortalData'
 
-const { dashboard } = useVolunteerContent()
-const { events } = dashboard
+const { events } = useVolunteerPortalData()
 </script>
 
 <template>
@@ -19,7 +18,10 @@ const { events } = dashboard
       >
         Upcoming events
       </h2>
-      <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <p v-if="events.length === 0" class="text-base text-text-muted">
+        There are no upcoming events right now.
+      </p>
+      <ul v-else class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <li v-for="event in events" :key="event.id">
           <BaseCard interactive>
             <ResponsiveImage

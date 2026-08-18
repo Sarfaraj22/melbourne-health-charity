@@ -1,85 +1,5 @@
 rules_version = '2';
 
-// ===============================================================
-// Assumed Data Model
-// ===============================================================
-//
-// Submission forms live on public pages and write without a signed-in
-// user. Each collection allows `create` only, with field-level
-// validation, and denies all other access. Staff review of submissions
-// is a later admin feature and is not exposed to clients here.
-//
-// Spam/abuse protection (reCAPTCHA + Cloud Function write throttling)
-// is a future enhancement; field validation here is a first line of
-// defence, not a security boundary on its own.
-//
-// Collection: contact_messages
-// Document ID: auto-id
-// Fields:
-//   - name: string (required, 1-200)
-//   - email: string (required, email format)
-//   - phone: string (optional, 0-40)
-//   - subject: string (required, 1-200)
-//   - message: string (required, 1-5000)
-//   - createdAt: timestamp (required, must equal request.time)
-//
-// Collection: assistance_requests
-// Document ID: auto-id
-// Fields:
-//   - name: string (required, 1-200)
-//   - email: string (required, email format)
-//   - phone: string (optional, 0-40)
-//   - need: string (required, 1-200)
-//   - message: string (required, 1-5000)
-//   - createdAt: timestamp (required, must equal request.time)
-//
-// Collection: donations
-// Document ID: auto-id
-// Fields:
-//   - amount: number (required, >= 2)
-//   - frequency: string (required, 'one-off' | 'monthly')
-//   - name: string (required, 1-200)
-//   - email: string (required, email format)
-//   - message: string (optional, 0-1000)
-//   - createdAt: timestamp (required, must equal request.time)
-//
-// Collection: volunteer_applications
-// Document ID: auto-id
-// Fields:
-//   - name: string (required, 1-200)
-//   - email: string (required, email format)
-//   - phone: string (required, 1-40)
-//   - interests: list of strings (required, 1-5 items, enum values)
-//   - availability: string (required, enum)
-//   - message: string (optional, 0-5000)
-//   - createdAt: timestamp (required, must equal request.time)
-//
-// Collection: event_registrations
-// Document ID: auto-id
-// Fields:
-//   - eventSlug: string (required, 1-200)
-//   - name: string (required, 1-200)
-//   - email: string (required, email format)
-//   - phone: string (required, 1-40)
-//   - attendees: string (required, 1-10)
-//   - accessibilityRequirements: string (optional, 0-2000)
-//   - optInUpdates: bool (required)
-//   - createdAt: timestamp (required, must equal request.time)
-//
-// Collection: appointments
-// Document ID: auto-id
-// Fields:
-//   - name: string (required, 1-200)
-//   - date: string (required, 1-20)
-//   - time: string (required, 1-20)
-//   - serviceSlug: string (required, 1-200)
-//   - supportType: string (required, enum)
-//   - accessibilityRequirements: string (optional, 0-2000)
-//   - transportRequired: string (required, 'yes' | 'no')
-//   - createdAt: timestamp (required, must equal request.time)
-//
-// ===============================================================
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -145,23 +65,43 @@ service cloud.firestore {
 
     function isValidVolunteerApplication(data) {
       return data.keys().hasOnly([
-          'name', 'email', 'phone', 'interests', 'availability', 'message', 'createdAt'
+          'name', 'email', 'phone', 'address', 'interests', 'availability',
+          'message', 'status', 'createdAt'
         ])
         && isNonEmptyString(data.name, 200)
         && isValidEmail(data.email)
         && isNonEmptyString(data.phone, 40)
+        && isNonEmptyString(data.address, 300)
         && isValidInterestList(data.interests)
         && data.availability in ['weekday', 'weekend', 'evening', 'flexible']
         && isOptionalString(data.message, 5000)
+        && data.status == 'pending'
         && isServerCreatedAt();
+    }
+
+    function isValidOwnerUserId(value) {
+      return value is string
+        && value.size() <= 128
+        && (
+          (request.auth == null && value == '')
+          || (request.auth != null && value == request.auth.uid)
+        );
+    }
+
+    function isOwnerDoc(data) {
+      return request.auth != null
+        && data.userId is string
+        && data.userId.size() > 0
+        && data.userId == request.auth.uid;
     }
 
     function isValidEventRegistration(data) {
       return data.keys().hasOnly([
-          'eventSlug', 'name', 'email', 'phone', 'attendees',
+          'eventSlug', 'userId', 'name', 'email', 'phone', 'attendees',
           'accessibilityRequirements', 'optInUpdates', 'createdAt'
         ])
         && isNonEmptyString(data.eventSlug, 200)
+        && isValidOwnerUserId(data.userId)
         && isNonEmptyString(data.name, 200)
         && isValidEmail(data.email)
         && isNonEmptyString(data.phone, 40)
@@ -173,9 +113,10 @@ service cloud.firestore {
 
     function isValidAppointment(data) {
       return data.keys().hasOnly([
-          'name', 'date', 'time', 'serviceSlug', 'supportType',
+          'userId', 'name', 'date', 'time', 'serviceSlug', 'supportType',
           'accessibilityRequirements', 'transportRequired', 'createdAt'
         ])
+        && isValidOwnerUserId(data.userId)
         && isNonEmptyString(data.name, 200)
         && isNonEmptyString(data.date, 20)
         && isNonEmptyString(data.time, 20)
@@ -186,9 +127,76 @@ service cloud.firestore {
         && isServerCreatedAt();
     }
 
-    // ===============================================================
-    // Admin helpers
-    // ===============================================================
+    function isUserRole() {
+      return request.auth != null
+        && request.auth.token.role != 'admin'
+        && request.auth.token.role != 'volunteer';
+    }
+
+    function isVolunteer() {
+      return request.auth != null
+        && request.auth.token.role == 'volunteer';
+    }
+
+    function isValidInboxMessage(data) {
+      return data.keys().hasOnly(['userId', 'sender', 'body', 'fromRole', 'createdAt'])
+        && isNonEmptyString(data.userId, 128)
+        && isNonEmptyString(data.sender, 200)
+        && isNonEmptyString(data.body, 8000)
+        && data.fromRole in ['admin', 'user', 'volunteer']
+        && isServerCreatedAt();
+    }
+
+    function canCreateInboxMessage(data) {
+      return isValidInboxMessage(data)
+        && (
+          (isAdmin() && data.fromRole == 'admin')
+          || (
+            request.auth != null
+            && data.userId == request.auth.uid
+            && (
+              (data.fromRole == 'user' && isUserRole())
+              || (data.fromRole == 'volunteer' && isVolunteer())
+            )
+          )
+        );
+    }
+
+    function isValidProfileCreate(data, uid) {
+      return data.keys().hasOnly(['uid', 'displayName', 'email', 'role', 'createdAt'])
+        && data.uid == uid
+        && request.auth != null
+        && request.auth.uid == uid
+        && isNonEmptyString(data.displayName, 200)
+        && isValidEmail(data.email)
+        && data.role == 'user'
+        && isServerCreatedAt();
+    }
+
+    function isValidLiveChat(data) {
+      return data.keys().hasOnly(['guestName', 'guestEmail', 'status', 'createdAt', 'updatedAt'])
+        && isNonEmptyString(data.guestName, 200)
+        && isValidEmail(data.guestEmail)
+        && data.status == 'open'
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidLiveChatMessage(data) {
+      return data.keys().hasOnly(['sender', 'body', 'createdAt'])
+        && data.sender in ['guest', 'admin']
+        && isNonEmptyString(data.body, 2000)
+        && isServerCreatedAt();
+    }
+
+    function isValidSavedResource(data) {
+      return data.keys().hasOnly(['userId', 'resourceId', 'createdAt'])
+        && request.auth != null
+        && data.userId == request.auth.uid
+        && isNonEmptyString(data.userId, 128)
+        && isNonEmptyString(data.resourceId, 200)
+        && isServerCreatedAt();
+    }
 
     function isAdmin() {
       return request.auth != null
@@ -197,18 +205,29 @@ service cloud.firestore {
 
     function isValidVolunteerRecord(data) {
       return data.keys().hasOnly([
-          'name', 'email', 'phone', 'status', 'trainingPercent', 'hours', 'createdAt'
+          'name', 'email', 'phone', 'address', 'status', 'trainingPercent',
+          'hours', 'authUid', 'createdAt'
         ])
         && isNonEmptyString(data.name, 200)
         && isValidEmail(data.email)
         && isOptionalString(data.phone, 40)
+        && isOptionalString(data.address, 300)
         && data.status in ['active', 'pending']
         && data.trainingPercent is number
         && data.trainingPercent >= 0
         && data.trainingPercent <= 100
         && data.hours is number
         && data.hours >= 0
+        && data.authUid is string
+        && data.authUid.size() <= 128
         && isServerCreatedAt();
+    }
+
+    function volunteerAuthUid(volunteerId) {
+      return exists(/databases/$(database)/documents/volunteers/$(volunteerId))
+        && get(/databases/$(database)/documents/volunteers/$(volunteerId)).data.authUid is string
+        && get(/databases/$(database)/documents/volunteers/$(volunteerId)).data.authUid.size() > 0
+        && get(/databases/$(database)/documents/volunteers/$(volunteerId)).data.authUid == request.auth.uid;
     }
 
     function isValidEventRecord(data) {
@@ -270,19 +289,43 @@ service cloud.firestore {
     }
 
     match /event_registrations/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || isOwnerDoc(resource.data);
       allow update, delete: if false;
       allow create: if isValidEventRegistration(request.resource.data);
     }
 
     match /appointments/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || isOwnerDoc(resource.data);
       allow update, delete: if false;
       allow create: if isValidAppointment(request.resource.data);
     }
 
+    match /messages/{id} {
+      allow read: if isAdmin() || isOwnerDoc(resource.data);
+      allow create: if canCreateInboxMessage(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /profiles/{uid} {
+      allow read: if isAdmin()
+        || (request.auth != null && request.auth.uid == uid);
+      allow create: if isValidProfileCreate(request.resource.data, uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /saved_resources/{id} {
+      allow read: if isAdmin() || isOwnerDoc(resource.data);
+      allow create: if isValidSavedResource(request.resource.data);
+      allow delete: if isOwnerDoc(resource.data);
+      allow update: if false;
+    }
+
     match /volunteers/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin()
+        || (request.auth != null
+          && resource.data.authUid == request.auth.uid
+          && resource.data.authUid is string
+          && resource.data.authUid.size() > 0);
       allow create: if isAdmin() && isValidVolunteerRecord(request.resource.data);
       allow update: if isAdmin()
         && request.resource.data.status in ['active', 'pending']
@@ -290,12 +333,15 @@ service cloud.firestore {
         && request.resource.data.trainingPercent >= 0
         && request.resource.data.trainingPercent <= 100
         && request.resource.data.hours is number
-        && request.resource.data.hours >= 0;
+        && request.resource.data.hours >= 0
+        && request.resource.data.authUid is string
+        && request.resource.data.authUid.size() <= 128
+        && isOptionalString(request.resource.data.address, 300);
       allow delete: if isAdmin();
     }
 
     match /events/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || resource.data.status == 'published';
       allow create: if isAdmin() && isValidEventRecord(request.resource.data);
       allow update: if isAdmin()
         && request.resource.data.status in ['published', 'draft'];
@@ -303,7 +349,8 @@ service cloud.firestore {
     }
 
     match /volunteer_hours/{id} {
-      allow read: if isAdmin();
+      allow read: if isAdmin()
+        || (request.auth != null && volunteerAuthUid(resource.data.volunteerId));
       allow create: if isAdmin() && isValidVolunteerHours(request.resource.data);
       allow update, delete: if false;
     }
@@ -312,6 +359,28 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isAdmin() && isValidReport(request.resource.data);
       allow update, delete: if false;
+    }
+
+    match /live_chats/{chatId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isValidLiveChat(request.resource.data);
+      allow update: if isAdmin()
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt'])
+          && request.resource.data.updatedAt == request.time
+        );
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if true;
+        allow create: if isValidLiveChatMessage(request.resource.data)
+          && (
+            request.resource.data.sender == 'guest'
+            || (isAdmin() && request.resource.data.sender == 'admin')
+          );
+        allow update, delete: if false;
+      }
     }
 
     match /{document=**} {

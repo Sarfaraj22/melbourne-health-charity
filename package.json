@@ -12,12 +12,19 @@
     "format": "prettier --write .",
     "type-check": "vue-tsc --noEmit",
     "commit": "cz",
-    "seed:users": "node scripts/seed-users.mjs"
+    "seed:users": "node --env-file=.env scripts/seed-users.mjs",
+    "seed:firestore": "node --env-file=.env scripts/seed-firestore.mjs",
+    "seed": "node --env-file=.env scripts/seed-users.mjs && node --env-file=.env scripts/seed-firestore.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
+    "@fullcalendar/core": "^6.1.21",
+    "@fullcalendar/daygrid": "^6.1.21",
+    "@fullcalendar/interaction": "^6.1.21",
+    "@fullcalendar/vue3": "^6.1.21",
     "class-variance-authority": "^0.7.1",
     "firebase": "^12.17.1",
+    "jspdf": "^4.2.1",
     "pinia": "^4.0.2",
     "sharp": "^0.35.3",
     "vue": "^3.5.40",

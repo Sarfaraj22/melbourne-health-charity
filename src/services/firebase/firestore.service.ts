@@ -5,16 +5,21 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
+  where,
   type DocumentData,
   type FirestoreDataConverter,
+  type QueryConstraint,
   type QueryDocumentSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from '@/services/firebase/config'
+import { decryptInboxBody, encryptInboxBody } from '@/utils/messageCrypto'
 import type {
   AdminEventStatus,
   AdminVolunteerStatus,
@@ -25,9 +30,18 @@ import type {
   DonationFrequency,
   EventRecordDoc,
   EventRegistrationDoc,
+  InboxMessageDoc,
+  LiveChatDoc,
+  LiveChatMessageDoc,
+  LiveChatSender,
+  LiveChatStatus,
+  MessageFromRole,
+  ProfileDoc,
   ReportDoc,
+  SavedResourceDoc,
   TransportRequired,
   VolunteerApplicationDoc,
+  VolunteerApplicationReviewStatus,
   VolunteerHoursDoc,
   VolunteerRecordDoc,
 } from '@/types/firestore'
@@ -127,6 +141,56 @@ function asAdminEventStatus(data: Record<string, unknown>, field: string): Admin
   return isAdminEventStatus(value) ? value : 'draft'
 }
 
+function isApplicationStatus(value: unknown): value is VolunteerApplicationReviewStatus {
+  return value === 'pending' || value === 'approved' || value === 'denied'
+}
+
+function asApplicationStatus(
+  data: Record<string, unknown>,
+  field: string,
+): VolunteerApplicationReviewStatus {
+  const value = data[field]
+  return isApplicationStatus(value) ? value : 'pending'
+}
+
+function isMessageFromRole(value: unknown): value is MessageFromRole {
+  return value === 'admin' || value === 'user' || value === 'volunteer'
+}
+
+function asMessageFromRole(data: Record<string, unknown>, field: string): MessageFromRole {
+  const value = data[field]
+  return isMessageFromRole(value) ? value : 'admin'
+}
+
+function isLiveChatStatus(value: unknown): value is LiveChatStatus {
+  return value === 'open' || value === 'closed'
+}
+
+function asLiveChatStatus(data: Record<string, unknown>, field: string): LiveChatStatus {
+  const value = data[field]
+  return isLiveChatStatus(value) ? value : 'open'
+}
+
+function isLiveChatSender(value: unknown): value is LiveChatSender {
+  return value === 'guest' || value === 'admin'
+}
+
+function asLiveChatSender(data: Record<string, unknown>, field: string): LiveChatSender {
+  const value = data[field]
+  return isLiveChatSender(value) ? value : 'guest'
+}
+
+function asOptionalTimestampMillis(
+  data: Record<string, unknown>,
+  field: string,
+): number | undefined {
+  if (!(field in data)) {
+    return undefined
+  }
+  const millis = asTimestampMillis(data, field)
+  return millis > 0 ? millis : undefined
+}
+
 const contactConverter: FirestoreDataConverter<ContactMessageDoc> = {
   toFirestore(message: ContactMessageDoc): DocumentData {
     return {
@@ -205,23 +269,32 @@ const volunteerApplicationConverter: FirestoreDataConverter<VolunteerApplication
       name: application.name,
       email: application.email,
       phone: application.phone,
+      address: application.address,
       interests: [...application.interests],
       availability: application.availability,
       message: application.message,
+      status: application.status,
       createdAt: serverTimestamp(),
     }
   },
   fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): VolunteerApplicationDoc {
     const data = toUnknownRecord(snap.data())
-    return {
+    const reviewedAt = asOptionalTimestampMillis(data, 'reviewedAt')
+    const base: VolunteerApplicationDoc = {
       name: asString(data, 'name'),
       email: asString(data, 'email'),
       phone: asString(data, 'phone'),
+      address: asString(data, 'address'),
       interests: asStringArray(data, 'interests'),
       availability: asString(data, 'availability'),
       message: asString(data, 'message'),
+      status: asApplicationStatus(data, 'status'),
       createdAt: asTimestampMillis(data, 'createdAt'),
     }
+    if (reviewedAt === undefined) {
+      return base
+    }
+    return { ...base, reviewedAt }
   },
 }
 
@@ -229,6 +302,7 @@ const eventRegistrationConverter: FirestoreDataConverter<EventRegistrationDoc> =
   toFirestore(registration: EventRegistrationDoc): DocumentData {
     return {
       eventSlug: registration.eventSlug,
+      userId: registration.userId,
       name: registration.name,
       email: registration.email,
       phone: registration.phone,
@@ -242,6 +316,7 @@ const eventRegistrationConverter: FirestoreDataConverter<EventRegistrationDoc> =
     const data = toUnknownRecord(snap.data())
     return {
       eventSlug: asString(data, 'eventSlug'),
+      userId: asString(data, 'userId'),
       name: asString(data, 'name'),
       email: asString(data, 'email'),
       phone: asString(data, 'phone'),
@@ -256,6 +331,7 @@ const eventRegistrationConverter: FirestoreDataConverter<EventRegistrationDoc> =
 const appointmentConverter: FirestoreDataConverter<AppointmentDoc> = {
   toFirestore(appointment: AppointmentDoc): DocumentData {
     return {
+      userId: appointment.userId,
       name: appointment.name,
       date: appointment.date,
       time: appointment.time,
@@ -269,6 +345,7 @@ const appointmentConverter: FirestoreDataConverter<AppointmentDoc> = {
   fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): AppointmentDoc {
     const data = toUnknownRecord(snap.data())
     return {
+      userId: asString(data, 'userId'),
       name: asString(data, 'name'),
       date: asString(data, 'date'),
       time: asString(data, 'time'),
@@ -316,19 +393,17 @@ export async function submitBooking(appointment: AppointmentDoc): Promise<void> 
   await addSubmission('appointments', appointmentConverter, appointment)
 }
 
-// ===============================================================
-// Admin collection converters
-// ===============================================================
-
 const volunteerRecordConverter: FirestoreDataConverter<VolunteerRecordDoc> = {
   toFirestore(record: VolunteerRecordDoc): DocumentData {
     return {
       name: record.name,
       email: record.email,
       phone: record.phone,
+      address: record.address,
       status: record.status,
       trainingPercent: record.trainingPercent,
       hours: record.hours,
+      authUid: record.authUid,
       createdAt: serverTimestamp(),
     }
   },
@@ -338,9 +413,11 @@ const volunteerRecordConverter: FirestoreDataConverter<VolunteerRecordDoc> = {
       name: asString(data, 'name'),
       email: asString(data, 'email'),
       phone: asString(data, 'phone'),
+      address: asString(data, 'address'),
       status: asAdminVolunteerStatus(data, 'status'),
       trainingPercent: asNumber(data, 'trainingPercent'),
       hours: asNumber(data, 'hours'),
+      authUid: asString(data, 'authUid'),
       createdAt: asTimestampMillis(data, 'createdAt'),
     }
   },
@@ -416,17 +493,13 @@ const reportConverter: FirestoreDataConverter<ReportDoc> = {
   },
 }
 
-// ===============================================================
-// Admin CRUD helpers
-// ===============================================================
-
-interface WithId<T> {
+export interface WithId<T> {
   readonly id: string
   readonly data: T
 }
 
-function toWithId<T>(snap: QueryDocumentSnapshot<DocumentData>): WithId<T> {
-  return { id: snap.id, data: snap.data() as T }
+function toWithId<T>(snap: QueryDocumentSnapshot<T>): WithId<T> {
+  return { id: snap.id, data: snap.data() }
 }
 
 async function createAdminRecord<T>(
@@ -439,19 +512,70 @@ async function createAdminRecord<T>(
   return docRef.id
 }
 
+function subscribeQuery<T>(
+  path: string,
+  converter: FirestoreDataConverter<T>,
+  constraints: readonly QueryConstraint[],
+  callback: (records: readonly WithId<T>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const ref = collection(db, path).withConverter(converter)
+  const parsedQuery = query(ref, ...constraints)
+  return onSnapshot(
+    parsedQuery,
+    (snap) => {
+      callback(snap.docs.map((item) => toWithId(item)))
+    },
+    onError !== undefined ? (error) => onError(error) : undefined,
+  )
+}
+
 function subscribeAdminRecords<T>(
   path: string,
   converter: FirestoreDataConverter<T>,
   callback: (records: readonly WithId<T>[]) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe {
-  const ref = collection(db, path).withConverter(converter)
-  return onSnapshot(
-    ref,
-    (snap) => {
-      callback(snap.docs.map((s) => toWithId<T>(s)))
+  return subscribeQuery(path, converter, [], callback, onError)
+}
+
+async function decryptInboxRecords(
+  records: readonly WithId<InboxMessageDoc>[],
+): Promise<readonly WithId<InboxMessageDoc>[]> {
+  return Promise.all(
+    records.map(async (record) => ({
+      id: record.id,
+      data: {
+        userId: record.data.userId,
+        sender: record.data.sender,
+        body: await decryptInboxBody(record.data.userId, record.data.body),
+        fromRole: record.data.fromRole,
+        createdAt: record.data.createdAt,
+      },
+    })),
+  )
+}
+
+function subscribeEncryptedInbox(
+  constraints: readonly QueryConstraint[],
+  callback: (records: readonly WithId<InboxMessageDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  let generation = 0
+  return subscribeQuery(
+    'messages',
+    inboxMessageConverter,
+    constraints,
+    (records) => {
+      generation += 1
+      const current = generation
+      void decryptInboxRecords(records).then((decrypted) => {
+        if (current === generation) {
+          callback(decrypted)
+        }
+      })
     },
-    onError !== undefined ? (error) => onError(error as Error) : undefined,
+    onError,
   )
 }
 
@@ -470,10 +594,6 @@ async function deleteAdminRecord(path: string, id: string): Promise<void> {
   await deleteDoc(ref)
 }
 
-// ===============================================================
-// Volunteer CRUD
-// ===============================================================
-
 export async function createVolunteer(record: VolunteerRecordDoc): Promise<string> {
   return createAdminRecord('volunteers', volunteerRecordConverter, record)
 }
@@ -488,7 +608,7 @@ export function subscribeVolunteers(
 export async function getVolunteerById(id: string): Promise<VolunteerRecordDoc | undefined> {
   const ref = doc(db, 'volunteers', id).withConverter(volunteerRecordConverter)
   const snap = await getDoc(ref)
-  return snap.exists() ? (snap.data() as VolunteerRecordDoc) : undefined
+  return snap.exists() ? snap.data() : undefined
 }
 
 export async function updateVolunteer(
@@ -502,10 +622,6 @@ export async function deleteVolunteer(id: string): Promise<void> {
   await deleteAdminRecord('volunteers', id)
 }
 
-// ===============================================================
-// Volunteer hours
-// ===============================================================
-
 export async function logVolunteerHours(entry: VolunteerHoursDoc): Promise<string> {
   return createAdminRecord('volunteer_hours', volunteerHoursConverter, entry)
 }
@@ -516,10 +632,6 @@ export function subscribeVolunteerHours(
 ): Unsubscribe {
   return subscribeAdminRecords('volunteer_hours', volunteerHoursConverter, callback, onError)
 }
-
-// ===============================================================
-// Event CRUD
-// ===============================================================
 
 export async function createEvent(record: EventRecordDoc): Promise<string> {
   return createAdminRecord('events', eventRecordConverter, record)
@@ -535,7 +647,7 @@ export function subscribeEvents(
 export async function getEventById(id: string): Promise<EventRecordDoc | undefined> {
   const ref = doc(db, 'events', id).withConverter(eventRecordConverter)
   const snap = await getDoc(ref)
-  return snap.exists() ? (snap.data() as EventRecordDoc) : undefined
+  return snap.exists() ? snap.data() : undefined
 }
 
 export async function updateEvent(id: string, patch: Partial<EventRecordDoc>): Promise<void> {
@@ -545,10 +657,6 @@ export async function updateEvent(id: string, patch: Partial<EventRecordDoc>): P
 export async function deleteEvent(id: string): Promise<void> {
   await deleteAdminRecord('events', id)
 }
-
-// ===============================================================
-// Reports
-// ===============================================================
 
 export async function createReport(report: ReportDoc): Promise<string> {
   return createAdminRecord('reports', reportConverter, report)
@@ -561,36 +669,361 @@ export function subscribeReports(
   return subscribeAdminRecords('reports', reportConverter, callback, onError)
 }
 
-// ===============================================================
-// Admin read access to submission collections
-// ===============================================================
-
 export async function getRecentContactMessages(
-  limit = 5,
+  maxItems = 5,
 ): Promise<readonly WithId<ContactMessageDoc>[]> {
   const ref = collection(db, 'contact_messages').withConverter(contactConverter)
   const snap = await getDocs(query(ref))
-  const all = snap.docs.map((s) => toWithId<ContactMessageDoc>(s))
+  const all = snap.docs.map((item) => toWithId(item))
   return all
     .slice()
     .sort((a, b) => b.data.createdAt - a.data.createdAt)
-    .slice(0, limit)
+    .slice(0, maxItems)
 }
 
 export async function getRecentVolunteerApplications(
-  limit = 5,
+  maxItems = 5,
 ): Promise<readonly WithId<VolunteerApplicationDoc>[]> {
   const ref = collection(db, 'volunteer_applications').withConverter(volunteerApplicationConverter)
   const snap = await getDocs(query(ref))
-  const all = snap.docs.map((s) => toWithId<VolunteerApplicationDoc>(s))
+  const all = snap.docs.map((item) => toWithId(item))
   return all
     .slice()
     .sort((a, b) => b.data.createdAt - a.data.createdAt)
-    .slice(0, limit)
+    .slice(0, maxItems)
 }
 
 export async function countContactMessages(): Promise<number> {
   const ref = collection(db, 'contact_messages').withConverter(contactConverter)
   const snap = await getDocs(query(ref))
   return snap.size
+}
+
+const inboxMessageConverter: FirestoreDataConverter<InboxMessageDoc> = {
+  toFirestore(message: InboxMessageDoc): DocumentData {
+    return {
+      userId: message.userId,
+      sender: message.sender,
+      body: message.body,
+      fromRole: message.fromRole,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): InboxMessageDoc {
+    const data = toUnknownRecord(snap.data())
+    const body = asString(data, 'body')
+    const preview = asString(data, 'preview')
+    return {
+      userId: asString(data, 'userId'),
+      sender: asString(data, 'sender'),
+      body: body.length > 0 ? body : preview,
+      fromRole: asMessageFromRole(data, 'fromRole'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+const profileConverter: FirestoreDataConverter<ProfileDoc> = {
+  toFirestore(profile: ProfileDoc): DocumentData {
+    return {
+      uid: profile.uid,
+      displayName: profile.displayName,
+      email: profile.email,
+      role: profile.role,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): ProfileDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      uid: asString(data, 'uid'),
+      displayName: asString(data, 'displayName'),
+      email: asString(data, 'email'),
+      role: asMessageFromRole(data, 'role'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+const liveChatConverter: FirestoreDataConverter<LiveChatDoc> = {
+  toFirestore(chat: LiveChatDoc): DocumentData {
+    return {
+      guestName: chat.guestName,
+      guestEmail: chat.guestEmail,
+      status: chat.status,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): LiveChatDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      guestName: asString(data, 'guestName'),
+      guestEmail: asString(data, 'guestEmail'),
+      status: asLiveChatStatus(data, 'status'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+      updatedAt: asTimestampMillis(data, 'updatedAt'),
+    }
+  },
+}
+
+const liveChatMessageConverter: FirestoreDataConverter<LiveChatMessageDoc> = {
+  toFirestore(message: LiveChatMessageDoc): DocumentData {
+    return {
+      sender: message.sender,
+      body: message.body,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): LiveChatMessageDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      sender: asLiveChatSender(data, 'sender'),
+      body: asString(data, 'body'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+const savedResourceConverter: FirestoreDataConverter<SavedResourceDoc> = {
+  toFirestore(resource: SavedResourceDoc): DocumentData {
+    return {
+      userId: resource.userId,
+      resourceId: resource.resourceId,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): SavedResourceDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      userId: asString(data, 'userId'),
+      resourceId: asString(data, 'resourceId'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+export function subscribePublishedEvents(
+  callback: (records: readonly WithId<EventRecordDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'events',
+    eventRecordConverter,
+    [where('status', '==', 'published')],
+    callback,
+    onError,
+  )
+}
+
+export async function getPublishedEvents(): Promise<readonly WithId<EventRecordDoc>[]> {
+  const ref = collection(db, 'events').withConverter(eventRecordConverter)
+  const snap = await getDocs(query(ref, where('status', '==', 'published')))
+  return snap.docs.map((item) => toWithId(item))
+}
+
+export async function getPublishedEventBySlug(
+  slug: string,
+): Promise<WithId<EventRecordDoc> | undefined> {
+  const ref = collection(db, 'events').withConverter(eventRecordConverter)
+  const snap = await getDocs(
+    query(ref, where('status', '==', 'published'), where('slug', '==', slug), limit(1)),
+  )
+  const first = snap.docs[0]
+  return first === undefined ? undefined : toWithId(first)
+}
+
+export function subscribeAppointmentsForUser(
+  userId: string,
+  callback: (records: readonly WithId<AppointmentDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'appointments',
+    appointmentConverter,
+    [where('userId', '==', userId)],
+    callback,
+    onError,
+  )
+}
+
+export function subscribeEventRegistrationsForUser(
+  userId: string,
+  callback: (records: readonly WithId<EventRegistrationDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'event_registrations',
+    eventRegistrationConverter,
+    [where('userId', '==', userId)],
+    callback,
+    onError,
+  )
+}
+
+export function subscribeMessagesForUser(
+  userId: string,
+  callback: (records: readonly WithId<InboxMessageDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeEncryptedInbox([where('userId', '==', userId)], callback, onError)
+}
+
+export function subscribeSavedResourcesForUser(
+  userId: string,
+  callback: (records: readonly WithId<SavedResourceDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'saved_resources',
+    savedResourceConverter,
+    [where('userId', '==', userId)],
+    callback,
+    onError,
+  )
+}
+
+function savedResourceDocId(userId: string, resourceId: string): string {
+  return `${userId}_${resourceId}`
+}
+
+export async function saveResource(userId: string, resourceId: string): Promise<void> {
+  const id = savedResourceDocId(userId, resourceId)
+  const ref = doc(db, 'saved_resources', id).withConverter(savedResourceConverter)
+  await setDoc(ref, { userId, resourceId, createdAt: Date.now() })
+}
+
+export async function unsaveResource(userId: string, resourceId: string): Promise<void> {
+  const id = savedResourceDocId(userId, resourceId)
+  await deleteDoc(doc(db, 'saved_resources', id))
+}
+
+export function subscribeVolunteerByAuthUid(
+  authUid: string,
+  callback: (record: WithId<VolunteerRecordDoc> | undefined) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'volunteers',
+    volunteerRecordConverter,
+    [where('authUid', '==', authUid), limit(1)],
+    (records) => {
+      callback(records[0])
+    },
+    onError,
+  )
+}
+
+export function subscribeVolunteerHoursForVolunteer(
+  volunteerId: string,
+  callback: (records: readonly WithId<VolunteerHoursDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'volunteer_hours',
+    volunteerHoursConverter,
+    [where('volunteerId', '==', volunteerId)],
+    callback,
+    onError,
+  )
+}
+
+export function subscribeVolunteerApplications(
+  callback: (records: readonly WithId<VolunteerApplicationDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords(
+    'volunteer_applications',
+    volunteerApplicationConverter,
+    callback,
+    onError,
+  )
+}
+
+export function subscribeInboxMessages(
+  callback: (records: readonly WithId<InboxMessageDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeEncryptedInbox([], callback, onError)
+}
+
+export async function createInboxMessage(message: InboxMessageDoc): Promise<string> {
+  const body = await encryptInboxBody(message.userId, message.body)
+  return createAdminRecord('messages', inboxMessageConverter, { ...message, body })
+}
+
+export async function upsertProfile(profile: ProfileDoc): Promise<void> {
+  const ref = doc(db, 'profiles', profile.uid).withConverter(profileConverter)
+  await setDoc(ref, profile)
+}
+
+export function subscribeProfiles(
+  callback: (records: readonly WithId<ProfileDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords('profiles', profileConverter, callback, onError)
+}
+
+export async function createLiveChat(chat: LiveChatDoc): Promise<string> {
+  return createAdminRecord('live_chats', liveChatConverter, chat)
+}
+
+export function subscribeLiveChat(
+  chatId: string,
+  callback: (record: WithId<LiveChatDoc> | undefined) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const ref = doc(db, 'live_chats', chatId).withConverter(liveChatConverter)
+  return onSnapshot(
+    ref,
+    (snap) => {
+      if (!snap.exists()) {
+        callback(undefined)
+        return
+      }
+      callback({ id: snap.id, data: snap.data() })
+    },
+    onError !== undefined ? (error) => onError(error) : undefined,
+  )
+}
+
+export function subscribeLiveChats(
+  callback: (records: readonly WithId<LiveChatDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords('live_chats', liveChatConverter, callback, onError)
+}
+
+export function subscribeLiveChatMessages(
+  chatId: string,
+  callback: (records: readonly WithId<LiveChatMessageDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const ref = collection(db, 'live_chats', chatId, 'messages').withConverter(
+    liveChatMessageConverter,
+  )
+  return onSnapshot(
+    query(ref),
+    (snap) => {
+      callback(snap.docs.map((item) => toWithId(item)))
+    },
+    onError !== undefined ? (error) => onError(error) : undefined,
+  )
+}
+
+export async function addLiveChatMessage(
+  chatId: string,
+  message: LiveChatMessageDoc,
+): Promise<void> {
+  const ref = collection(db, 'live_chats', chatId, 'messages').withConverter(
+    liveChatMessageConverter,
+  )
+  await addDoc(ref, message)
+  const chatRef = doc(db, 'live_chats', chatId)
+  await updateDoc(chatRef, { updatedAt: serverTimestamp() })
+}
+
+export async function updateLiveChatStatus(chatId: string, status: LiveChatStatus): Promise<void> {
+  const ref = doc(db, 'live_chats', chatId)
+  await updateDoc(ref, { status, updatedAt: serverTimestamp() })
 }

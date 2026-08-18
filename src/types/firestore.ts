@@ -29,18 +29,30 @@ export interface DonationDoc {
   readonly createdAt: number
 }
 
+export type VolunteerApplicationReviewStatus = 'pending' | 'approved' | 'denied'
+
+export type MessageFromRole = 'admin' | 'user' | 'volunteer'
+
+export type LiveChatStatus = 'open' | 'closed'
+
+export type LiveChatSender = 'guest' | 'admin'
+
 export interface VolunteerApplicationDoc {
   readonly name: string
   readonly email: string
   readonly phone: string
+  readonly address: string
   readonly interests: readonly string[]
   readonly availability: string
   readonly message: string
+  readonly status: VolunteerApplicationReviewStatus
   readonly createdAt: number
+  readonly reviewedAt?: number
 }
 
 export interface EventRegistrationDoc {
   readonly eventSlug: string
+  readonly userId: string
   readonly name: string
   readonly email: string
   readonly phone: string
@@ -58,9 +70,11 @@ export interface VolunteerRecordDoc {
   readonly name: string
   readonly email: string
   readonly phone: string
+  readonly address: string
   readonly status: AdminVolunteerStatus
   readonly trainingPercent: number
   readonly hours: number
+  readonly authUid: string
   readonly createdAt: number
 }
 
@@ -91,6 +105,7 @@ export interface ReportDoc {
 }
 
 export interface AppointmentDoc {
+  readonly userId: string
   readonly name: string
   readonly date: string
   readonly time: string
@@ -98,5 +113,41 @@ export interface AppointmentDoc {
   readonly supportType: string
   readonly accessibilityRequirements: string
   readonly transportRequired: TransportRequired
+  readonly createdAt: number
+}
+
+export interface InboxMessageDoc {
+  readonly userId: string
+  readonly sender: string
+  readonly body: string
+  readonly fromRole: MessageFromRole
+  readonly createdAt: number
+}
+
+export interface ProfileDoc {
+  readonly uid: string
+  readonly displayName: string
+  readonly email: string
+  readonly role: MessageFromRole
+  readonly createdAt: number
+}
+
+export interface LiveChatDoc {
+  readonly guestName: string
+  readonly guestEmail: string
+  readonly status: LiveChatStatus
+  readonly createdAt: number
+  readonly updatedAt: number
+}
+
+export interface LiveChatMessageDoc {
+  readonly sender: LiveChatSender
+  readonly body: string
+  readonly createdAt: number
+}
+
+export interface SavedResourceDoc {
+  readonly userId: string
+  readonly resourceId: string
   readonly createdAt: number
 }

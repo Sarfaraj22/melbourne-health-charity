@@ -123,6 +123,7 @@ function handleOptInChange(event: Event): void {
           id="event-reg-name"
           type="text"
           autocomplete="name"
+          required
           :value="form.name"
           :aria-invalid="errors.name ? true : undefined"
           :aria-describedby="nameDescribedBy"
@@ -140,6 +141,7 @@ function handleOptInChange(event: Event): void {
           id="event-reg-email"
           type="email"
           autocomplete="email"
+          required
           :value="form.email"
           :aria-invalid="errors.email ? true : undefined"
           :aria-describedby="emailDescribedBy"
@@ -157,6 +159,7 @@ function handleOptInChange(event: Event): void {
           id="event-reg-phone"
           type="tel"
           autocomplete="tel"
+          required
           :value="form.phone"
           :aria-invalid="errors.phone ? true : undefined"
           :aria-describedby="phoneDescribedBy"
@@ -178,6 +181,7 @@ function handleOptInChange(event: Event): void {
           min="1"
           max="20"
           inputmode="numeric"
+          required
           :value="form.attendees"
           :aria-invalid="errors.attendees ? true : undefined"
           :aria-describedby="attendeesDescribedBy"
