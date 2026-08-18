@@ -9,7 +9,7 @@ export default withVueTs(
   },
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/.ua/**'],
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/.ua/**', '**/functions/**'],
   },
   pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
