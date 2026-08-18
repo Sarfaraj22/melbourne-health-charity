@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { submitEventRegistration } from '@/services/firebase/firestore.service'
+import { useAuthStore } from '@/stores/auth.store'
 import type { EventRegistrationFormErrors, EventRegistrationFormState } from '@/types/event'
 
 export interface UseEventRegistrationFormReturn {
@@ -28,7 +29,6 @@ const initialFormState = (): EventRegistrationFormState => ({
   optInUpdates: false,
 })
 
-// Pragmatic, intentionally permissive patterns — validation is a UX cue, not a security boundary.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_PATTERN = /^[0-9()+\-\s]{6,20}$/
 
@@ -123,8 +123,10 @@ export function useEventRegistrationForm(eventSlug: string): UseEventRegistratio
     }
 
     try {
+      const authStore = useAuthStore()
       await submitEventRegistration({
         eventSlug,
+        userId: authStore.user?.uid ?? '',
         name: form.value.name.trim(),
         email: form.value.email.trim(),
         phone: form.value.phone.trim(),

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppDateTimePicker from '@/components/ui/AppDateTimePicker.vue'
 import { useBookingForm } from '@/composables/useBookingForm'
 import { getBookableServices } from '@/composables/useServicesContent'
 import type { SupportType, TransportRequired } from '@/types/service'
@@ -85,20 +86,6 @@ function handleNameInput(event: Event): void {
   }
 }
 
-function handleDateInput(event: Event): void {
-  const target = event.target
-  if (target instanceof HTMLInputElement) {
-    setDate(target.value)
-  }
-}
-
-function handleTimeInput(event: Event): void {
-  const target = event.target
-  if (target instanceof HTMLInputElement) {
-    setTime(target.value)
-  }
-}
-
 function handleServiceChange(event: Event): void {
   const target = event.target
   if (target instanceof HTMLSelectElement) {
@@ -151,6 +138,7 @@ function handleAccessibilityInput(event: Event): void {
           id="booking-name"
           type="text"
           autocomplete="name"
+          required
           :value="form.name"
           :aria-invalid="errors.name ? true : undefined"
           :aria-describedby="nameDescribedBy"
@@ -166,6 +154,7 @@ function handleAccessibilityInput(event: Event): void {
         <label for="booking-service" class="text-xs font-medium text-text-subtle">Service</label>
         <select
           id="booking-service"
+          required
           :value="form.serviceSlug"
           :aria-invalid="errors.serviceSlug ? true : undefined"
           :aria-describedby="serviceDescribedBy"
@@ -188,32 +177,25 @@ function handleAccessibilityInput(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="booking-date" class="text-xs font-medium text-text-subtle">Date</label>
-        <input
-          id="booking-date"
-          type="date"
-          :value="form.date"
-          :aria-invalid="errors.date ? true : undefined"
-          :aria-describedby="dateDescribedBy"
-          class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-          @input="handleDateInput"
+        <p id="booking-date-label" class="text-xs font-medium text-text-subtle">Date and time</p>
+        <AppDateTimePicker
+          :date="form.date"
+          :time="form.time"
+          date-input-id="booking-date"
+          time-input-id="booking-time"
+          :allow-past="false"
+          time-mode="slots"
+          :date-invalid="errors.date !== undefined"
+          :time-invalid="errors.time !== undefined"
+          :date-described-by="dateDescribedBy ?? ''"
+          :time-described-by="timeDescribedBy ?? ''"
+          :disabled="isSubmitting"
+          @update:date="setDate"
+          @update:time="setTime"
         />
         <p v-if="errors.date" :id="dateErrorId" class="text-xs text-brand-accent" role="alert">
           {{ errors.date }}
         </p>
-      </div>
-
-      <div class="flex flex-col gap-1.5">
-        <label for="booking-time" class="text-xs font-medium text-text-subtle">Time</label>
-        <input
-          id="booking-time"
-          type="time"
-          :value="form.time"
-          :aria-invalid="errors.time ? true : undefined"
-          :aria-describedby="timeDescribedBy"
-          class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-          @input="handleTimeInput"
-        />
         <p v-if="errors.time" :id="timeErrorId" class="text-xs text-brand-accent" role="alert">
           {{ errors.time }}
         </p>
@@ -225,6 +207,7 @@ function handleAccessibilityInput(event: Event): void {
         </label>
         <select
           id="booking-support-type"
+          required
           :value="form.supportType"
           :aria-invalid="errors.supportType ? true : undefined"
           :aria-describedby="supportTypeDescribedBy"

@@ -24,7 +24,7 @@ const methods: readonly ContactMethod[] = [
     description:
       'Available Monday to Friday, 9:00am – 5:00pm. Outside these hours, please leave a message using the form below.',
     icon: messageCircleIcon,
-    href: '',
+    href: '/get-support/chat',
     ctaLabel: 'Start live chat',
   },
   {
@@ -38,9 +38,10 @@ const methods: readonly ContactMethod[] = [
   {
     id: 'email',
     title: 'Email',
-    description: 'Write to hello@charity.org.au and we will reply within two business days.',
+    description:
+      'Write to inquiry@melbournehealth.org.au and we will reply within two business days.',
     icon: mailIcon,
-    href: 'mailto:hello@charity.org.au',
+    href: 'mailto:inquiry@melbournehealth.org.au',
     ctaLabel: 'Email us',
   },
 ]
@@ -81,8 +82,8 @@ export function useContactContent(): ContactContent {
       addressLines: ['123 Support Street', 'Melbourne VIC 3000'],
       phone: '1800 123 456',
       phoneHref: 'tel:1800123456',
-      email: 'hello@charity.org.au',
-      emailHref: 'mailto:hello@charity.org.au',
+      email: 'inquiry@melbournehealth.org.au',
+      emailHref: 'mailto:inquiry@melbournehealth.org.au',
       hours: [
         { day: 'Monday – Friday', time: '9:00am – 5:00pm' },
         { day: 'Saturday', time: 'Closed' },

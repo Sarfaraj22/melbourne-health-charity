@@ -146,6 +146,7 @@ function handleMessageInput(event: Event): void {
                 min="2"
                 step="1"
                 inputmode="decimal"
+                required
                 :value="form.customAmount"
                 :aria-invalid="errors.amount ? true : undefined"
                 :aria-describedby="amountDescribedBy"
@@ -191,6 +192,7 @@ function handleMessageInput(event: Event): void {
               id="donate-name"
               type="text"
               autocomplete="name"
+              required
               :value="form.name"
               :aria-invalid="errors.name ? true : undefined"
               :aria-describedby="nameDescribedBy"
@@ -208,6 +210,7 @@ function handleMessageInput(event: Event): void {
               id="donate-email"
               type="email"
               autocomplete="email"
+              required
               :value="form.email"
               :aria-invalid="errors.email ? true : undefined"
               :aria-describedby="emailDescribedBy"

@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { submitBooking } from '@/services/firebase/firestore.service'
+import { useAuthStore } from '@/stores/auth.store'
 import type {
   BookingFormErrors,
   BookingFormState,
@@ -7,6 +8,13 @@ import type {
   TransportRequired,
 } from '@/types/service'
 import { getBookableServices } from '@/composables/useServicesContent'
+import {
+  isDateBeforeDay,
+  isValidDateDdMmYyyy,
+  isValidTimeAmPm,
+  parseDateDdMmYyyy,
+  startOfToday,
+} from '@/utils/datetime'
 
 export interface UseBookingFormReturn {
   readonly form: Ref<BookingFormState>
@@ -51,11 +59,16 @@ function validateForm(state: BookingFormState): BookingFormErrors {
     errors.name = 'Please enter your name.'
   }
 
-  if (!state.date) {
+  if (!isValidDateDdMmYyyy(state.date)) {
     errors.date = 'Please select a date for your appointment.'
+  } else {
+    const parsedDate = parseDateDdMmYyyy(state.date)
+    if (parsedDate !== undefined && isDateBeforeDay(parsedDate, startOfToday())) {
+      errors.date = 'Please choose today or a future date.'
+    }
   }
 
-  if (!state.time) {
+  if (!isValidTimeAmPm(state.time)) {
     errors.time = 'Please select a time for your appointment.'
   }
 
@@ -152,7 +165,9 @@ export function useBookingForm(initialServiceSlug: string): UseBookingFormReturn
     }
 
     try {
+      const authStore = useAuthStore()
       await submitBooking({
+        userId: authStore.user?.uid ?? '',
         name: form.value.name.trim(),
         date: form.value.date,
         time: form.value.time,

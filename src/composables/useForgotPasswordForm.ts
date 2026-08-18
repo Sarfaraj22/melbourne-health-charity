@@ -1,6 +1,11 @@
 import { ref, type Ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
-import type { AuthResult, ForgotPasswordFormErrors, ForgotPasswordFormState } from '@/types/auth'
+import {
+  fieldErrorsFromAuthError,
+  type AuthResult,
+  type ForgotPasswordFormErrors,
+  type ForgotPasswordFormState,
+} from '@/types/auth'
 
 export interface UseForgotPasswordFormReturn {
   readonly form: Ref<ForgotPasswordFormState>
@@ -65,6 +70,10 @@ export function useForgotPasswordForm(): UseForgotPasswordFormReturn {
     if (!result.success) {
       status.value = 'error'
       errorMessage.value = result.error?.message ?? 'Unable to send reset email. Please try again.'
+      const fieldErrors = fieldErrorsFromAuthError(result.error)
+      if (fieldErrors.email !== undefined) {
+        errors.value = { ...errors.value, email: fieldErrors.email }
+      }
       return result
     }
     status.value = 'success'

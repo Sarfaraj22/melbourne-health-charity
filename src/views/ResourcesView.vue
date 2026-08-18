@@ -35,7 +35,7 @@ const savedIds = computed(() => savedStore.savedIds)
 const savedCount = computed(() => savedStore.count)
 
 function onToggleSave(id: string): void {
-  savedStore.toggle(id)
+  void savedStore.toggle(id)
 }
 </script>
 

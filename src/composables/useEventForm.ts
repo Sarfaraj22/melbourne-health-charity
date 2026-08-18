@@ -7,6 +7,7 @@ import type {
   EventFormState,
 } from '@/types/admin'
 import type { EventRecordDoc } from '@/types/firestore'
+import { isValidDateDdMmYyyy } from '@/utils/datetime'
 
 export interface UseEventFormReturn {
   readonly form: Ref<EventFormState>
@@ -61,8 +62,8 @@ function validateForm(state: EventFormState): EventFormErrors {
     errors.slug = 'Please enter a slug or leave it blank to auto-generate.'
   }
 
-  if (!state.date.trim()) {
-    errors.date = 'Please enter the event date.'
+  if (!isValidDateDdMmYyyy(state.date.trim())) {
+    errors.date = 'Please select a date in DD-MM-YYYY format.'
   }
 
   return errors

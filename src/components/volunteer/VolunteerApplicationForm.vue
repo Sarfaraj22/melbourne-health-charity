@@ -16,6 +16,7 @@ const {
   setName,
   setEmail,
   setPhone,
+  setAddress,
   toggleInterest,
   setAvailability,
   setMessage,
@@ -33,6 +34,7 @@ const availabilityLabels: Record<VolunteerAvailability, string> = {
 const nameErrorId = 'volunteer-name-error'
 const emailErrorId = 'volunteer-email-error'
 const phoneErrorId = 'volunteer-phone-error'
+const addressErrorId = 'volunteer-address-error'
 const interestsErrorId = 'volunteer-interests-error'
 const availabilityErrorId = 'volunteer-availability-error'
 const successMessageId = 'volunteer-success-message'
@@ -45,6 +47,9 @@ const emailDescribedBy = computed((): string | undefined =>
 )
 const phoneDescribedBy = computed((): string | undefined =>
   errors.value.phone ? phoneErrorId : undefined,
+)
+const addressDescribedBy = computed((): string | undefined =>
+  errors.value.address ? addressErrorId : undefined,
 )
 const interestsDescribedBy = computed((): string | undefined =>
   errors.value.interests ? interestsErrorId : undefined,
@@ -76,6 +81,13 @@ function handlePhoneInput(event: Event): void {
   const target = event.target
   if (target instanceof HTMLInputElement) {
     setPhone(target.value)
+  }
+}
+
+function handleAddressInput(event: Event): void {
+  const target = event.target
+  if (target instanceof HTMLInputElement) {
+    setAddress(target.value)
   }
 }
 
@@ -145,6 +157,7 @@ function handleMessageInput(event: Event): void {
             id="volunteer-name"
             type="text"
             autocomplete="name"
+            required
             :value="form.name"
             :aria-invalid="errors.name ? true : undefined"
             :aria-describedby="nameDescribedBy"
@@ -162,6 +175,7 @@ function handleMessageInput(event: Event): void {
             id="volunteer-email"
             type="email"
             autocomplete="email"
+            required
             :value="form.email"
             :aria-invalid="errors.email ? true : undefined"
             :aria-describedby="emailDescribedBy"
@@ -179,6 +193,7 @@ function handleMessageInput(event: Event): void {
             id="volunteer-phone"
             type="tel"
             autocomplete="tel"
+            required
             :value="form.phone"
             :aria-invalid="errors.phone ? true : undefined"
             :aria-describedby="phoneDescribedBy"
@@ -187,6 +202,31 @@ function handleMessageInput(event: Event): void {
           />
           <p v-if="errors.phone" :id="phoneErrorId" class="text-xs text-brand-accent" role="alert">
             {{ errors.phone }}
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="volunteer-address" class="text-xs font-medium text-text-subtle"
+            >Address</label
+          >
+          <input
+            id="volunteer-address"
+            type="text"
+            autocomplete="street-address"
+            required
+            :value="form.address"
+            :aria-invalid="errors.address ? true : undefined"
+            :aria-describedby="addressDescribedBy"
+            class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            @input="handleAddressInput"
+          />
+          <p
+            v-if="errors.address"
+            :id="addressErrorId"
+            class="text-xs text-brand-accent"
+            role="alert"
+          >
+            {{ errors.address }}
           </p>
         </div>
 
@@ -224,6 +264,7 @@ function handleMessageInput(event: Event): void {
           </label>
           <select
             id="volunteer-availability"
+            required
             :value="form.availability"
             :aria-invalid="errors.availability ? true : undefined"
             :aria-describedby="availabilityDescribedBy"

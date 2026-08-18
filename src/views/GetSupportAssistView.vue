@@ -83,6 +83,7 @@ function handleInput(setter: (value: string) => void, event: Event): void {
               id="assist-name"
               type="text"
               autocomplete="name"
+              required
               :value="form.name"
               :aria-invalid="errors.name ? true : undefined"
               :aria-describedby="nameDescribedBy"
@@ -99,6 +100,7 @@ function handleInput(setter: (value: string) => void, event: Event): void {
               id="assist-email"
               type="email"
               autocomplete="email"
+              required
               :value="form.email"
               :aria-invalid="errors.email ? true : undefined"
               :aria-describedby="emailDescribedBy"
@@ -134,6 +136,7 @@ function handleInput(setter: (value: string) => void, event: Event): void {
             <input
               id="assist-need"
               type="text"
+              required
               :value="form.need"
               :aria-invalid="errors.need ? true : undefined"
               :aria-describedby="needDescribedBy"
@@ -149,6 +152,7 @@ function handleInput(setter: (value: string) => void, event: Event): void {
             <textarea
               id="assist-message"
               rows="4"
+              required
               :value="form.message"
               :aria-invalid="errors.message ? true : undefined"
               :aria-describedby="messageDescribedBy"

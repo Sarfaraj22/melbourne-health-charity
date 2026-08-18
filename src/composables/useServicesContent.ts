@@ -321,7 +321,7 @@ const supportChannels: readonly SupportChannel[] = [
     title: 'Live Chat',
     description: 'Chat with our support team in real time',
     icon: messageCircleIcon,
-    href: '/contact',
+    href: '/get-support/chat',
   },
   {
     id: 'call-us',
@@ -333,9 +333,9 @@ const supportChannels: readonly SupportChannel[] = [
   {
     id: 'email',
     title: 'Email',
-    description: 'support@healthcharity.org.au',
+    description: 'support@melbournehealth.org.au',
     icon: mailIcon,
-    href: 'mailto:support@healthcharity.org.au',
+    href: 'mailto:support@melbournehealth.org.au',
   },
 ]
 
@@ -358,6 +358,22 @@ export function getBookableServices(): readonly BookableServiceOption[] {
   }
 
   return options
+}
+
+export function getServiceDetailBySlug(slug: string): ServiceDetail | undefined {
+  for (const category of categories) {
+    if (category.kind === 'group') {
+      const match = category.subServices.find((subService) => subService.slug === slug)
+      if (match !== undefined) {
+        return match
+      }
+      continue
+    }
+    if (category.detail.slug === slug) {
+      return category.detail
+    }
+  }
+  return undefined
 }
 
 export function getCategoryBySlug(slug: string): ServiceCategory | undefined {

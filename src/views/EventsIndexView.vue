@@ -7,7 +7,7 @@ import { useEventsContent } from '@/composables/useEventsContent'
 
 const crumbs: readonly BreadcrumbItem[] = [{ label: 'Home', to: '/' }, { label: 'Events' }]
 
-const { currentEvents, futureEvents } = useEventsContent()
+const { currentEvents, futureEvents, loading } = useEventsContent()
 
 const heroIntro =
   'Browse our current and upcoming events for people with disability, their families, and carers across Melbourne. Register online to secure your place.'
@@ -28,7 +28,8 @@ const heroIntro =
             Events happening now or coming up soon — register today to save your spot.
           </p>
         </div>
-        <ul v-if="currentEvents.length > 0" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <p v-if="loading" class="text-base text-text-muted">Loading events…</p>
+        <ul v-else-if="currentEvents.length > 0" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <li v-for="event in currentEvents" :key="event.slug" class="flex">
             <EventCard :event="event" />
           </li>
@@ -49,7 +50,8 @@ const heroIntro =
             Save the date and register early for these upcoming community events.
           </p>
         </div>
-        <ul v-if="futureEvents.length > 0" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <p v-if="loading" class="text-base text-text-muted">Loading events…</p>
+        <ul v-else-if="futureEvents.length > 0" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <li v-for="event in futureEvents" :key="event.slug" class="flex">
             <EventCard :event="event" />
           </li>

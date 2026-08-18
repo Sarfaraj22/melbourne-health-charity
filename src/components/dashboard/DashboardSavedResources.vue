@@ -1,8 +1,38 @@
 <script setup lang="ts">
-import { useDashboardContent } from '@/composables/useDashboardContent'
+import { computed } from 'vue'
+import { getResourceById } from '@/composables/useResourcesContent'
+import { useSavedResourcesStore } from '@/stores/savedResources.store'
+import type { DashboardResourceKind, DashboardSavedResource } from '@/types/dashboard'
+import type { ResourceFormat } from '@/types/resource'
 
-const { content } = useDashboardContent()
-const resources = content.savedResources
+function toResourceKind(format: ResourceFormat): DashboardResourceKind {
+  if (format === 'video') {
+    return 'video'
+  }
+  if (format === 'article') {
+    return 'article'
+  }
+  return 'guide'
+}
+
+const savedStore = useSavedResourcesStore()
+
+const resources = computed((): readonly DashboardSavedResource[] => {
+  const items: DashboardSavedResource[] = []
+  for (const id of savedStore.savedIds) {
+    const resource = getResourceById(id)
+    if (resource === undefined) {
+      continue
+    }
+    items.push({
+      id: resource.id,
+      title: resource.title,
+      kind: toResourceKind(resource.format),
+      href: '/resources',
+    })
+  }
+  return items
+})
 </script>
 
 <template>
@@ -19,7 +49,10 @@ const resources = content.savedResources
       </router-link>
     </div>
 
-    <ul class="flex flex-col divide-y divide-border-default">
+    <p v-if="resources.length === 0" class="text-sm text-text-muted">
+      You have not saved any resources yet.
+    </p>
+    <ul v-else class="flex flex-col divide-y divide-border-default">
       <li v-for="resource in resources" :key="resource.id" class="flex flex-col gap-1 py-3">
         <router-link
           :to="resource.href"

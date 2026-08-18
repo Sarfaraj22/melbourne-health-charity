@@ -21,6 +21,7 @@ export interface UseVolunteerFormReturn {
   setName: (value: string) => void
   setEmail: (value: string) => void
   setPhone: (value: string) => void
+  setAddress: (value: string) => void
   setStatus: (value: AdminVolunteerStatus) => void
   setTrainingPercent: (value: string) => void
   setHours: (value: string) => void
@@ -36,6 +37,7 @@ const initialFormState = (): VolunteerFormState => ({
   name: '',
   email: '',
   phone: '',
+  address: '',
   status: 'pending',
   trainingPercent: '0',
   hours: '0',
@@ -98,6 +100,10 @@ export function useVolunteerForm(): UseVolunteerFormReturn {
     form.value = { ...form.value, phone: value }
   }
 
+  function setAddress(value: string): void {
+    form.value = { ...form.value, address: value }
+  }
+
   function setStatus(value: AdminVolunteerStatus): void {
     form.value = { ...form.value, status: value }
   }
@@ -128,6 +134,7 @@ export function useVolunteerForm(): UseVolunteerFormReturn {
       name: volunteer.name,
       email: volunteer.email,
       phone: volunteer.phone,
+      address: volunteer.address,
       status: volunteer.status,
       trainingPercent: String(volunteer.trainingPercent),
       hours: String(volunteer.hours),
@@ -156,9 +163,11 @@ export function useVolunteerForm(): UseVolunteerFormReturn {
         name: form.value.name.trim(),
         email: form.value.email.trim(),
         phone: form.value.phone.trim(),
+        address: form.value.address.trim(),
         status: form.value.status,
         trainingPercent,
         hours,
+        authUid: '',
         createdAt: Date.now(),
       })
 
@@ -201,6 +210,7 @@ export function useVolunteerForm(): UseVolunteerFormReturn {
         name: form.value.name.trim(),
         email: form.value.email.trim(),
         phone: form.value.phone.trim(),
+        address: form.value.address.trim(),
         status: form.value.status,
         trainingPercent,
         hours,
@@ -234,6 +244,7 @@ export function useVolunteerForm(): UseVolunteerFormReturn {
     setName,
     setEmail,
     setPhone,
+    setAddress,
     setStatus,
     setTrainingPercent,
     setHours,

@@ -4,7 +4,7 @@ import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import EventDetailInfo from '@/components/events/EventDetailInfo.vue'
 import EventRegistrationForm from '@/components/events/EventRegistrationForm.vue'
-import { getEventBySlug } from '@/composables/useEventsContent'
+import { useEventsContent } from '@/composables/useEventsContent'
 import type { BreadcrumbItem } from '@/types/service'
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { getEventBySlug, loading } = useEventsContent()
 
 const event = computed(() => getEventBySlug(props.eventSlug))
 
@@ -60,6 +61,14 @@ const crumbs = computed((): readonly BreadcrumbItem[] => {
       </div>
     </div>
   </div>
+
+  <section
+    v-else-if="loading"
+    class="mx-auto flex min-h-placeholder max-w-container flex-col items-center justify-center gap-3 px-5 py-20 text-center sm:px-8"
+  >
+    <h1 class="text-3xl font-bold text-text-default">Loading event</h1>
+    <p class="max-w-md text-base text-text-muted">Please wait while we load this event.</p>
+  </section>
 
   <section
     v-else

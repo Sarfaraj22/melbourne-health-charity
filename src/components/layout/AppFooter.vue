@@ -34,7 +34,7 @@ const legalLinks: readonly FooterLink[] = [
 const contactDetails: readonly string[] = [
   '123 Support Street, Melbourne VIC 3000',
   'Phone: 1800 123 456',
-  'Email: hello@charity.org.au',
+  'Email: inquiry@melbournehealth.org.au',
 ]
 
 interface SocialLink {

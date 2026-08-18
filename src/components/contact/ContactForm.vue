@@ -117,6 +117,7 @@ function handleMessageInput(event: Event): void {
           id="contact-name"
           type="text"
           autocomplete="name"
+          required
           :value="form.name"
           :aria-invalid="errors.name ? true : undefined"
           :aria-describedby="nameDescribedBy"
@@ -134,6 +135,7 @@ function handleMessageInput(event: Event): void {
           id="contact-email"
           type="email"
           autocomplete="email"
+          required
           :value="form.email"
           :aria-invalid="errors.email ? true : undefined"
           :aria-describedby="emailDescribedBy"
@@ -169,6 +171,7 @@ function handleMessageInput(event: Event): void {
         <input
           id="contact-subject"
           type="text"
+          required
           :value="form.subject"
           :aria-invalid="errors.subject ? true : undefined"
           :aria-describedby="subjectDescribedBy"
@@ -191,6 +194,7 @@ function handleMessageInput(event: Event): void {
           id="contact-message"
           :value="form.message"
           rows="5"
+          required
           :aria-invalid="errors.message ? true : undefined"
           :aria-describedby="messageDescribedBy"
           class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default placeholder:text-text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
