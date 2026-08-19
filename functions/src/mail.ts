@@ -29,6 +29,11 @@ export async function sendHtmlEmail(
   }
 }
 
+export async function sendPlainEmail(to: string, subject: string, body: string): Promise<void> {
+  const html = `<p>${escapeHtml(body).replaceAll('\n', '<br/>')}</p>`
+  await sendHtmlEmail(to, subject, html, body)
+}
+
 export async function sendBulkBccEmail(
   recipients: readonly string[],
   subject: string,

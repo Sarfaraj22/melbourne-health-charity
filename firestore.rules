@@ -174,18 +174,99 @@ service cloud.firestore {
     }
 
     function isValidLiveChat(data) {
-      return data.keys().hasOnly(['guestName', 'guestEmail', 'status', 'createdAt', 'updatedAt'])
+      return data.keys().hasOnly([
+          'guestName', 'guestEmail', 'origin', 'userId', 'status', 'createdAt', 'updatedAt'
+        ])
         && isNonEmptyString(data.guestName, 200)
         && isValidEmail(data.guestEmail)
+        && data.origin in ['visitor', 'registered']
+        && data.userId is string
+        && data.userId.size() <= 128
         && data.status == 'open'
         && data.createdAt == request.time
-        && data.updatedAt == request.time;
+        && data.updatedAt == request.time
+        && (
+          (data.origin == 'visitor' && data.userId == '')
+          || (
+            data.origin == 'registered'
+            && request.auth != null
+            && data.userId == request.auth.uid
+            && isUserRole()
+          )
+        );
     }
 
     function isValidLiveChatMessage(data) {
       return data.keys().hasOnly(['sender', 'body', 'createdAt'])
-        && data.sender in ['guest', 'admin']
+        && data.sender in ['visitor', 'user', 'volunteer', 'admin']
         && isNonEmptyString(data.body, 2000)
+        && isServerCreatedAt();
+    }
+
+    function isValidMessageThread(data) {
+      return data.keys().hasOnly(['participantUids', 'initiatedByUid', 'createdAt', 'updatedAt'])
+        && data.participantUids is list
+        && data.participantUids.size() == 2
+        && isNonEmptyString(data.initiatedByUid, 128)
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && request.auth != null
+        && request.auth.uid in data.participantUids
+        && data.initiatedByUid == request.auth.uid;
+    }
+
+    function otherThreadParticipant(uids) {
+      return uids[0] == request.auth.uid ? uids[1] : uids[0];
+    }
+
+    function canCreateMessageThread(data) {
+      return isValidMessageThread(data)
+        && (
+          isAdmin()
+          || (
+            isVolunteer()
+            && exists(/databases/$(database)/documents/profiles/$(otherThreadParticipant(data.participantUids)))
+            && get(/databases/$(database)/documents/profiles/$(otherThreadParticipant(data.participantUids))).data.role == 'admin'
+          )
+        );
+    }
+
+    function isThreadParticipant() {
+      return request.auth != null
+        && resource.data.participantUids is list
+        && request.auth.uid in resource.data.participantUids;
+    }
+
+    function isValidThreadMessage(data) {
+      return data.keys().hasOnly(['senderUid', 'sender', 'fromRole', 'body', 'createdAt'])
+        && request.auth != null
+        && data.senderUid == request.auth.uid
+        && isNonEmptyString(data.sender, 200)
+        && data.fromRole in ['admin', 'user', 'volunteer']
+        && isNonEmptyString(data.body, 8000)
+        && isServerCreatedAt()
+        && (
+          (isAdmin() && data.fromRole == 'admin')
+          || (isUserRole() && data.fromRole == 'user')
+          || (isVolunteer() && data.fromRole == 'volunteer')
+        );
+    }
+
+    function isValidEmailRecord(data) {
+      return data.keys().hasOnly([
+          'to', 'fromAddress', 'subject', 'body', 'source', 'folder',
+          'threadId', 'contactId', 'createdAt'
+        ])
+        && isValidEmail(data.to)
+        && isNonEmptyString(data.fromAddress, 254)
+        && isNonEmptyString(data.subject, 200)
+        && isNonEmptyString(data.body, 8000)
+        && data.source in ['compose', 'bulk', 'contact', 'inbound']
+        && data.folder in ['inbox', 'sent']
+        && data.threadId is string
+        && data.threadId.size() <= 128
+        && data.contactId is string
+        && data.contactId.size() <= 128
         && isServerCreatedAt();
     }
 
@@ -206,7 +287,7 @@ service cloud.firestore {
     function isValidVolunteerRecord(data) {
       return data.keys().hasOnly([
           'name', 'email', 'phone', 'address', 'status', 'trainingPercent',
-          'hours', 'authUid', 'createdAt'
+          'hours', 'authUid', 'coordinatorUid', 'createdAt'
         ])
         && isNonEmptyString(data.name, 200)
         && isValidEmail(data.email)
@@ -220,6 +301,8 @@ service cloud.firestore {
         && data.hours >= 0
         && data.authUid is string
         && data.authUid.size() <= 128
+        && data.coordinatorUid is string
+        && data.coordinatorUid.size() <= 128
         && isServerCreatedAt();
     }
 
@@ -266,8 +349,10 @@ service cloud.firestore {
 
     match /contact_messages/{id} {
       allow read: if isAdmin();
-      allow update, delete: if false;
       allow create: if isValidContact(request.resource.data);
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['repliedAt']);
+      allow delete: if false;
     }
 
     match /assistance_requests/{id} {
@@ -307,8 +392,8 @@ service cloud.firestore {
     }
 
     match /profiles/{uid} {
-      allow read: if isAdmin()
-        || (request.auth != null && request.auth.uid == uid);
+      allow get: if request.auth != null;
+      allow list: if isAdmin();
       allow create: if isValidProfileCreate(request.resource.data, uid);
       allow update, delete: if isAdmin();
     }
@@ -363,9 +448,15 @@ service cloud.firestore {
 
     match /live_chats/{chatId} {
       allow get: if true;
-      allow list: if isAdmin();
+      allow list: if isAdmin()
+        || isVolunteer()
+        || (request.auth != null
+          && resource.data.userId == request.auth.uid
+          && resource.data.userId is string
+          && resource.data.userId.size() > 0);
       allow create: if isValidLiveChat(request.resource.data);
       allow update: if isAdmin()
+        || isVolunteer()
         || (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt'])
           && request.resource.data.updatedAt == request.time
@@ -376,11 +467,49 @@ service cloud.firestore {
         allow read: if true;
         allow create: if isValidLiveChatMessage(request.resource.data)
           && (
-            request.resource.data.sender == 'guest'
+            (request.resource.data.sender == 'visitor' && request.auth == null)
+            || (
+              request.resource.data.sender == 'user'
+              && isUserRole()
+              && get(/databases/$(database)/documents/live_chats/$(chatId)).data.userId == request.auth.uid
+            )
+            || (isVolunteer() && request.resource.data.sender == 'volunteer')
             || (isAdmin() && request.resource.data.sender == 'admin')
           );
         allow update, delete: if false;
       }
+    }
+
+    match /message_threads/{threadId} {
+      allow read: if isAdmin() || isThreadParticipant();
+      allow create: if canCreateMessageThread(request.resource.data);
+      allow update: if (isAdmin() || isThreadParticipant())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt'])
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAdmin()
+          || (
+            request.auth != null
+            && request.auth.uid in get(/databases/$(database)/documents/message_threads/$(threadId)).data.participantUids
+          );
+        allow create: if isValidThreadMessage(request.resource.data)
+          && (
+            isAdmin()
+            || (
+              request.auth != null
+              && request.auth.uid in get(/databases/$(database)/documents/message_threads/$(threadId)).data.participantUids
+            )
+          );
+        allow update, delete: if false;
+      }
+    }
+
+    match /emails/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidEmailRecord(request.resource.data);
+      allow update, delete: if false;
     }
 
     match /{document=**} {

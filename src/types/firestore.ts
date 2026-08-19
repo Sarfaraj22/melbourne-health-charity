@@ -9,6 +9,7 @@ export interface ContactMessageDoc {
   readonly subject: string
   readonly message: string
   readonly createdAt: number
+  readonly repliedAt?: number
 }
 
 export interface AssistanceRequestDoc {
@@ -35,7 +36,9 @@ export type MessageFromRole = 'admin' | 'user' | 'volunteer'
 
 export type LiveChatStatus = 'open' | 'closed'
 
-export type LiveChatSender = 'guest' | 'admin'
+export type LiveChatOrigin = 'visitor' | 'registered'
+
+export type LiveChatSender = 'visitor' | 'user' | 'volunteer' | 'admin'
 
 export interface VolunteerApplicationDoc {
   readonly name: string
@@ -75,6 +78,7 @@ export interface VolunteerRecordDoc {
   readonly trainingPercent: number
   readonly hours: number
   readonly authUid: string
+  readonly coordinatorUid: string
   readonly createdAt: number
 }
 
@@ -135,6 +139,8 @@ export interface ProfileDoc {
 export interface LiveChatDoc {
   readonly guestName: string
   readonly guestEmail: string
+  readonly origin: LiveChatOrigin
+  readonly userId: string
   readonly status: LiveChatStatus
   readonly createdAt: number
   readonly updatedAt: number
@@ -149,5 +155,36 @@ export interface LiveChatMessageDoc {
 export interface SavedResourceDoc {
   readonly userId: string
   readonly resourceId: string
+  readonly createdAt: number
+}
+
+export interface MessageThreadDoc {
+  readonly participantUids: readonly string[]
+  readonly createdAt: number
+  readonly updatedAt: number
+  readonly initiatedByUid: string
+}
+
+export interface ThreadMessageDoc {
+  readonly senderUid: string
+  readonly sender: string
+  readonly fromRole: MessageFromRole
+  readonly body: string
+  readonly createdAt: number
+}
+
+export type EmailFolder = 'inbox' | 'sent'
+
+export type EmailSource = 'compose' | 'bulk' | 'contact' | 'inbound'
+
+export interface EmailDoc {
+  readonly to: string
+  readonly fromAddress: string
+  readonly subject: string
+  readonly body: string
+  readonly source: EmailSource
+  readonly folder: EmailFolder
+  readonly threadId: string
+  readonly contactId: string
   readonly createdAt: number
 }

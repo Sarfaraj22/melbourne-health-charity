@@ -33,12 +33,18 @@ import type {
   InboxMessageDoc,
   LiveChatDoc,
   LiveChatMessageDoc,
+  LiveChatOrigin,
   LiveChatSender,
   LiveChatStatus,
   MessageFromRole,
+  MessageThreadDoc,
+  EmailDoc,
+  EmailFolder,
+  EmailSource,
   ProfileDoc,
   ReportDoc,
   SavedResourceDoc,
+  ThreadMessageDoc,
   TransportRequired,
   VolunteerApplicationDoc,
   VolunteerApplicationReviewStatus,
@@ -172,12 +178,42 @@ function asLiveChatStatus(data: Record<string, unknown>, field: string): LiveCha
 }
 
 function isLiveChatSender(value: unknown): value is LiveChatSender {
-  return value === 'guest' || value === 'admin'
+  return value === 'visitor' || value === 'user' || value === 'volunteer' || value === 'admin'
 }
 
 function asLiveChatSender(data: Record<string, unknown>, field: string): LiveChatSender {
   const value = data[field]
-  return isLiveChatSender(value) ? value : 'guest'
+  if (value === 'guest') {
+    return 'visitor'
+  }
+  return isLiveChatSender(value) ? value : 'visitor'
+}
+
+function isLiveChatOrigin(value: unknown): value is LiveChatOrigin {
+  return value === 'visitor' || value === 'registered'
+}
+
+function asLiveChatOrigin(data: Record<string, unknown>, field: string): LiveChatOrigin {
+  const value = data[field]
+  return isLiveChatOrigin(value) ? value : 'visitor'
+}
+
+function isEmailFolder(value: unknown): value is EmailFolder {
+  return value === 'inbox' || value === 'sent'
+}
+
+function asEmailFolder(data: Record<string, unknown>, field: string): EmailFolder {
+  const value = data[field]
+  return isEmailFolder(value) ? value : 'inbox'
+}
+
+function isEmailSource(value: unknown): value is EmailSource {
+  return value === 'compose' || value === 'bulk' || value === 'contact' || value === 'inbound'
+}
+
+function asEmailSource(data: Record<string, unknown>, field: string): EmailSource {
+  const value = data[field]
+  return isEmailSource(value) ? value : 'inbound'
 }
 
 function asOptionalTimestampMillis(
@@ -204,7 +240,8 @@ const contactConverter: FirestoreDataConverter<ContactMessageDoc> = {
   },
   fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): ContactMessageDoc {
     const data = toUnknownRecord(snap.data())
-    return {
+    const repliedAt = asOptionalTimestampMillis(data, 'repliedAt')
+    const base: ContactMessageDoc = {
       name: asString(data, 'name'),
       email: asString(data, 'email'),
       phone: asString(data, 'phone'),
@@ -212,6 +249,10 @@ const contactConverter: FirestoreDataConverter<ContactMessageDoc> = {
       message: asString(data, 'message'),
       createdAt: asTimestampMillis(data, 'createdAt'),
     }
+    if (repliedAt === undefined) {
+      return base
+    }
+    return { ...base, repliedAt }
   },
 }
 
@@ -404,6 +445,7 @@ const volunteerRecordConverter: FirestoreDataConverter<VolunteerRecordDoc> = {
       trainingPercent: record.trainingPercent,
       hours: record.hours,
       authUid: record.authUid,
+      coordinatorUid: record.coordinatorUid,
       createdAt: serverTimestamp(),
     }
   },
@@ -418,6 +460,7 @@ const volunteerRecordConverter: FirestoreDataConverter<VolunteerRecordDoc> = {
       trainingPercent: asNumber(data, 'trainingPercent'),
       hours: asNumber(data, 'hours'),
       authUid: asString(data, 'authUid'),
+      coordinatorUid: asString(data, 'coordinatorUid'),
       createdAt: asTimestampMillis(data, 'createdAt'),
     }
   },
@@ -750,6 +793,8 @@ const liveChatConverter: FirestoreDataConverter<LiveChatDoc> = {
     return {
       guestName: chat.guestName,
       guestEmail: chat.guestEmail,
+      origin: chat.origin,
+      userId: chat.userId,
       status: chat.status,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -760,6 +805,8 @@ const liveChatConverter: FirestoreDataConverter<LiveChatDoc> = {
     return {
       guestName: asString(data, 'guestName'),
       guestEmail: asString(data, 'guestEmail'),
+      origin: asLiveChatOrigin(data, 'origin'),
+      userId: asString(data, 'userId'),
       status: asLiveChatStatus(data, 'status'),
       createdAt: asTimestampMillis(data, 'createdAt'),
       updatedAt: asTimestampMillis(data, 'updatedAt'),
@@ -964,6 +1011,15 @@ export function subscribeProfiles(
   return subscribeAdminRecords('profiles', profileConverter, callback, onError)
 }
 
+export async function getProfile(uid: string): Promise<WithId<ProfileDoc> | undefined> {
+  const ref = doc(db, 'profiles', uid).withConverter(profileConverter)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) {
+    return undefined
+  }
+  return { id: snap.id, data: snap.data() }
+}
+
 export async function createLiveChat(chat: LiveChatDoc): Promise<string> {
   return createAdminRecord('live_chats', liveChatConverter, chat)
 }
@@ -1026,4 +1082,217 @@ export async function addLiveChatMessage(
 export async function updateLiveChatStatus(chatId: string, status: LiveChatStatus): Promise<void> {
   const ref = doc(db, 'live_chats', chatId)
   await updateDoc(ref, { status, updatedAt: serverTimestamp() })
+}
+
+const messageThreadConverter: FirestoreDataConverter<MessageThreadDoc> = {
+  toFirestore(thread: MessageThreadDoc): DocumentData {
+    return {
+      participantUids: [...thread.participantUids],
+      initiatedByUid: thread.initiatedByUid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): MessageThreadDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      participantUids: asStringArray(data, 'participantUids'),
+      initiatedByUid: asString(data, 'initiatedByUid'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+      updatedAt: asTimestampMillis(data, 'updatedAt'),
+    }
+  },
+}
+
+const threadMessageConverter: FirestoreDataConverter<ThreadMessageDoc> = {
+  toFirestore(message: ThreadMessageDoc): DocumentData {
+    return {
+      senderUid: message.senderUid,
+      sender: message.sender,
+      fromRole: message.fromRole,
+      body: message.body,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): ThreadMessageDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      senderUid: asString(data, 'senderUid'),
+      sender: asString(data, 'sender'),
+      fromRole: asMessageFromRole(data, 'fromRole'),
+      body: asString(data, 'body'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+const emailConverter: FirestoreDataConverter<EmailDoc> = {
+  toFirestore(email: EmailDoc): DocumentData {
+    return {
+      to: email.to,
+      fromAddress: email.fromAddress,
+      subject: email.subject,
+      body: email.body,
+      source: email.source,
+      folder: email.folder,
+      threadId: email.threadId,
+      contactId: email.contactId,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): EmailDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      to: asString(data, 'to'),
+      fromAddress: asString(data, 'fromAddress'),
+      subject: asString(data, 'subject'),
+      body: asString(data, 'body'),
+      source: asEmailSource(data, 'source'),
+      folder: asEmailFolder(data, 'folder'),
+      threadId: asString(data, 'threadId'),
+      contactId: asString(data, 'contactId'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+export function subscribeMessageThreadsForUser(
+  uid: string,
+  callback: (records: readonly WithId<MessageThreadDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'message_threads',
+    messageThreadConverter,
+    [where('participantUids', 'array-contains', uid)],
+    callback,
+    onError,
+  )
+}
+
+export function subscribeAllMessageThreads(
+  callback: (records: readonly WithId<MessageThreadDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords('message_threads', messageThreadConverter, callback, onError)
+}
+
+export async function createMessageThread(thread: MessageThreadDoc): Promise<string> {
+  return createAdminRecord('message_threads', messageThreadConverter, thread)
+}
+
+export async function findThreadWithParticipant(
+  selfUid: string,
+  otherUid: string,
+): Promise<string | undefined> {
+  const ref = collection(db, 'message_threads').withConverter(messageThreadConverter)
+  const snap = await getDocs(query(ref, where('participantUids', 'array-contains', selfUid)))
+  const match = snap.docs.find((item) => item.data().participantUids.includes(otherUid))
+  return match === undefined ? undefined : match.id
+}
+
+export async function findOrCreateMessageThread(
+  selfUid: string,
+  otherUid: string,
+  initiatedByUid: string,
+): Promise<string> {
+  const existing = await findThreadWithParticipant(selfUid, otherUid)
+  if (existing !== undefined) {
+    return existing
+  }
+  return createMessageThread({
+    participantUids: [selfUid, otherUid],
+    initiatedByUid,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  })
+}
+
+export function subscribeThreadMessages(
+  threadId: string,
+  callback: (records: readonly WithId<ThreadMessageDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  const ref = collection(db, 'message_threads', threadId, 'messages').withConverter(
+    threadMessageConverter,
+  )
+  let generation = 0
+  return onSnapshot(
+    query(ref),
+    (snap) => {
+      generation += 1
+      const current = generation
+      const records = snap.docs.map((item) => toWithId(item))
+      void Promise.all(
+        records.map(async (record) => ({
+          id: record.id,
+          data: {
+            senderUid: record.data.senderUid,
+            sender: record.data.sender,
+            fromRole: record.data.fromRole,
+            body: await decryptInboxBody(threadId, record.data.body),
+            createdAt: record.data.createdAt,
+          },
+        })),
+      ).then((decrypted) => {
+        if (current === generation) {
+          callback(decrypted)
+        }
+      })
+    },
+    onError !== undefined ? (error) => onError(error) : undefined,
+  )
+}
+
+export async function addThreadMessage(threadId: string, message: ThreadMessageDoc): Promise<void> {
+  const body = await encryptInboxBody(threadId, message.body)
+  const ref = collection(db, 'message_threads', threadId, 'messages').withConverter(
+    threadMessageConverter,
+  )
+  await addDoc(ref, { ...message, body })
+  const threadRef = doc(db, 'message_threads', threadId)
+  await updateDoc(threadRef, { updatedAt: serverTimestamp() })
+}
+
+export function subscribeLiveChatsForUser(
+  userId: string,
+  callback: (records: readonly WithId<LiveChatDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'live_chats',
+    liveChatConverter,
+    [where('userId', '==', userId)],
+    callback,
+    onError,
+  )
+}
+
+export async function findLatestOpenLiveChatForUser(userId: string): Promise<string | undefined> {
+  const ref = collection(db, 'live_chats').withConverter(liveChatConverter)
+  const snap = await getDocs(query(ref, where('userId', '==', userId)))
+  const open = snap.docs
+    .map((item) => toWithId(item))
+    .filter((record) => record.data.status === 'open')
+    .sort((left, right) => right.data.updatedAt - left.data.updatedAt)
+  const latest = open[0]
+  return latest === undefined ? undefined : latest.id
+}
+
+export function subscribeContactMessages(
+  callback: (records: readonly WithId<ContactMessageDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords('contact_messages', contactConverter, callback, onError)
+}
+
+export function subscribeEmails(
+  callback: (records: readonly WithId<EmailDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords('emails', emailConverter, callback, onError)
+}
+
+export async function createEmailRecord(email: EmailDoc): Promise<string> {
+  return createAdminRecord('emails', emailConverter, email)
 }

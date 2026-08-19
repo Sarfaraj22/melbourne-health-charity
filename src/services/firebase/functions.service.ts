@@ -5,6 +5,8 @@ import type {
   ReviewVolunteerApplicationResult,
   SendBulkEmailRequest,
   SendBulkEmailResult,
+  SendDirectEmailRequest,
+  SendDirectEmailResult,
 } from '@/types/functions'
 
 const functions = getFunctions(firebaseApp, 'australia-southeast1')
@@ -23,6 +25,21 @@ export async function reviewVolunteerApplication(
     ReviewVolunteerApplicationRequest,
     ReviewVolunteerApplicationResult
   >(functions, 'reviewVolunteerApplication')
+  try {
+    const result = await callable(payload)
+    return result.data
+  } catch (error) {
+    throw toError(error)
+  }
+}
+
+export async function sendDirectEmail(
+  payload: SendDirectEmailRequest,
+): Promise<SendDirectEmailResult> {
+  const callable = httpsCallable<SendDirectEmailRequest, SendDirectEmailResult>(
+    functions,
+    'sendDirectEmail',
+  )
   try {
     const result = await callable(payload)
     return result.data
