@@ -29,6 +29,7 @@ export interface UseVolunteerPortalDataReturn {
   readonly stats: ComputedRef<readonly VolunteerStat[]>
   readonly events: ComputedRef<readonly VolunteerEvent[]>
   readonly messages: ComputedRef<readonly VolunteerMessage[]>
+  readonly coordinatorUid: ComputedRef<string>
 }
 
 function initialsFromName(name: string): string {
@@ -192,6 +193,8 @@ export function useVolunteerPortalData(): UseVolunteerPortalDataReturn {
       })),
   )
 
+  const coordinatorUid = computed<string>(() => volunteer.value?.data.coordinatorUid ?? '')
+
   return {
     loading,
     profile,
@@ -199,5 +202,6 @@ export function useVolunteerPortalData(): UseVolunteerPortalDataReturn {
     stats,
     events,
     messages,
+    coordinatorUid,
   }
 }

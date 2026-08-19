@@ -33,6 +33,8 @@ export interface AdminLiveChatThread {
   readonly id: string
   readonly guestName: string
   readonly guestEmail: string
+  readonly origin: 'visitor' | 'registered'
+  readonly userId: string
   readonly status: 'open' | 'closed'
   readonly createdAt: number
   readonly updatedAt: number
@@ -108,6 +110,30 @@ export interface AdminComplianceFeature {
   readonly description: string
 }
 
+export interface AdminContactEnquiry {
+  readonly id: string
+  readonly name: string
+  readonly email: string
+  readonly phone: string
+  readonly subject: string
+  readonly message: string
+  readonly createdAt: number
+  readonly repliedAt?: number
+}
+
+export interface AdminEmailRecord {
+  readonly id: string
+  readonly to: string
+  readonly fromAddress: string
+  readonly subject: string
+  readonly body: string
+  readonly source: 'compose' | 'bulk' | 'contact' | 'inbound'
+  readonly folder: 'inbox' | 'sent'
+  readonly threadId: string
+  readonly contactId: string
+  readonly createdAt: number
+}
+
 export interface AdminDashboardData {
   readonly greetingSubtitle: string
   readonly kpiCards: readonly AdminKpiCard[]
@@ -120,6 +146,8 @@ export interface AdminDashboardData {
   readonly inboxMessages: readonly AdminInboxThread[]
   readonly profiles: readonly AdminProfile[]
   readonly liveChats: readonly AdminLiveChatThread[]
+  readonly emails: readonly AdminEmailRecord[]
+  readonly contacts: readonly AdminContactEnquiry[]
   readonly complianceFeatures: readonly AdminComplianceFeature[]
 }
 

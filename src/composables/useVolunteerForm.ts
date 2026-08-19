@@ -168,6 +168,7 @@ export function useVolunteerForm(): UseVolunteerFormReturn {
         trainingPercent,
         hours,
         authUid: '',
+        coordinatorUid: '',
         createdAt: Date.now(),
       })
 

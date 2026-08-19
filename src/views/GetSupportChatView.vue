@@ -5,7 +5,7 @@ import EventHero from '@/components/events/EventHero.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { useGetSupportContent } from '@/composables/useGetSupportContent'
-import { useLiveChat } from '@/composables/useLiveChat'
+import { isCustomerLiveChatSender, useLiveChat } from '@/composables/useLiveChat'
 import { formatMillisAsDdMmYyyy } from '@/utils/datetime'
 import messageCircleIcon from '@/assets/icons/message-circle.svg?raw'
 
@@ -26,9 +26,12 @@ const {
   sendError,
   starting,
   sending,
+  staffRedirect,
+  skipIdentityForm,
+  authReady,
   startChat,
   sendMessage,
-} = useLiveChat()
+} = useLiveChat('public')
 </script>
 
 <template>
@@ -43,34 +46,51 @@ const {
           <AppIcon :svg="messageCircleIcon" class-name="[&>svg]:h-6 [&>svg]:w-6" />
         </span>
 
+        <p v-if="!authReady" class="text-sm text-text-muted">Loading live chat...</p>
+
+        <div v-else-if="staffRedirect.length > 0" class="flex flex-col gap-4">
+          <p class="text-sm text-text-muted">
+            Staff live chat is available in your portal. Open incoming conversations there to reply.
+          </p>
+          <AppButton variant="primary" :to="staffRedirect">Go to your dashboard</AppButton>
+        </div>
+
         <form
-          v-if="phase === 'start'"
+          v-else-if="phase === 'start'"
           class="flex flex-col gap-4"
           novalidate
           @submit.prevent="startChat"
         >
-          <div class="flex flex-col gap-1.5">
-            <label for="live-chat-name" class="text-sm font-medium text-text-default">Name</label>
-            <input
-              id="live-chat-name"
-              v-model="guestName"
-              type="text"
-              autocomplete="name"
-              required
-              class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label for="live-chat-email" class="text-sm font-medium text-text-default">Email</label>
-            <input
-              id="live-chat-email"
-              v-model="guestEmail"
-              type="email"
-              autocomplete="email"
-              required
-              class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            />
-          </div>
+          <template v-if="!skipIdentityForm">
+            <div class="flex flex-col gap-1.5">
+              <label for="live-chat-name" class="text-sm font-medium text-text-default">Name</label>
+              <input
+                id="live-chat-name"
+                v-model="guestName"
+                type="text"
+                autocomplete="name"
+                required
+                class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="live-chat-email" class="text-sm font-medium text-text-default">
+                Email
+              </label>
+              <input
+                id="live-chat-email"
+                v-model="guestEmail"
+                type="email"
+                autocomplete="email"
+                required
+                class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              />
+            </div>
+          </template>
+          <p v-else class="text-sm text-text-muted">
+            Continue as your signed-in account. Volunteers will reply here, and a coordinator can
+            step in if needed.
+          </p>
           <p v-if="startError" class="text-sm text-brand-accent" role="alert">{{ startError }}</p>
           <AppButton type="submit" variant="primary" :disabled="starting">
             {{ starting ? 'Starting...' : 'Start live chat' }}
@@ -93,13 +113,13 @@ const {
               :key="message.id"
               class="flex flex-col gap-1 rounded-md p-3"
               :class="
-                message.data.sender === 'guest'
+                isCustomerLiveChatSender(message.data.sender)
                   ? 'bg-surface-muted'
                   : 'border border-border-default'
               "
             >
               <span class="text-xs font-bold text-text-subtle">
-                {{ message.data.sender === 'guest' ? 'You' : 'Support' }}
+                {{ isCustomerLiveChatSender(message.data.sender) ? 'You' : 'Support' }}
                 · {{ formatMillisAsDdMmYyyy(message.data.createdAt) }}
               </span>
               <span class="text-sm text-text-default">{{ message.data.body }}</span>
@@ -118,6 +138,7 @@ const {
               id="live-chat-message"
               v-model="draft"
               rows="3"
+              required
               class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
             />
             <AppButton

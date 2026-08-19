@@ -4,23 +4,17 @@ import AppButton from '@/components/ui/AppButton.vue'
 import {
   addLiveChatMessage,
   subscribeLiveChatMessages,
-  updateLiveChatStatus,
+  subscribeLiveChats,
   type WithId,
 } from '@/services/firebase/firestore.service'
+import type { LiveChatDoc, LiveChatMessageDoc } from '@/types/firestore'
 import { isCustomerLiveChatSender } from '@/composables/useLiveChat'
-import type { AdminLiveChatThread } from '@/types/admin'
-import type { LiveChatMessageDoc, LiveChatSender } from '@/types/firestore'
 import { formatMillisAsDdMmYyyy } from '@/utils/datetime'
 
-interface Props {
-  readonly chats: readonly AdminLiveChatThread[]
-}
-
-const props = defineProps<Props>()
-
+const chats = ref<readonly WithId<LiveChatDoc>[]>([])
 const selectedId = ref<string>('')
 const messages = ref<readonly WithId<LiveChatMessageDoc>[]>([])
-const lastSenderById = ref<Readonly<Record<string, LiveChatSender | ''>>>({})
+const lastSenderById = ref<Readonly<Record<string, LiveChatMessageDoc['sender'] | ''>>>({})
 const draft = ref<string>('')
 const sendError = ref<string>('')
 const sending = ref<boolean>(false)
@@ -28,12 +22,16 @@ const sending = ref<boolean>(false)
 let unsubMessages: (() => void) | undefined
 const previewUnsubs = new Map<string, () => void>()
 
-const selectedChat = computed<AdminLiveChatThread | undefined>(() =>
-  props.chats.find((chat) => chat.id === selectedId.value),
+const selectedChat = computed<WithId<LiveChatDoc> | undefined>(() =>
+  chats.value.find((chat) => chat.id === selectedId.value),
 )
 
 const sortedMessages = computed<readonly WithId<LiveChatMessageDoc>[]>(() =>
   messages.value.slice().sort((left, right) => left.data.createdAt - right.data.createdAt),
+)
+
+const sortedChats = computed<readonly WithId<LiveChatDoc>[]>(() =>
+  chats.value.slice().sort((left, right) => right.data.updatedAt - left.data.updatedAt),
 )
 
 function isUnanswered(chatId: string): boolean {
@@ -44,16 +42,6 @@ function isUnanswered(chatId: string): boolean {
   return isCustomerLiveChatSender(lastSender)
 }
 
-function senderLabel(sender: LiveChatSender, guestName: string): string {
-  if (sender === 'admin') {
-    return 'Admin'
-  }
-  if (sender === 'volunteer') {
-    return 'Volunteer'
-  }
-  return guestName
-}
-
 function clearPreviewSubscriptions(): void {
   for (const unsubscribe of previewUnsubs.values()) {
     unsubscribe()
@@ -62,7 +50,7 @@ function clearPreviewSubscriptions(): void {
 }
 
 watch(
-  () => props.chats,
+  chats,
   (records) => {
     const ids = new Set(records.map((record) => record.id))
     for (const [id, unsubscribe] of previewUnsubs) {
@@ -110,7 +98,17 @@ watch(
   { immediate: true, deep: false },
 )
 
+const unsubChats = subscribeLiveChats(
+  (records) => {
+    chats.value = records
+  },
+  () => {
+    sendError.value = 'Unable to load live chats.'
+  },
+)
+
 onUnmounted(() => {
+  unsubChats()
   if (unsubMessages !== undefined) {
     unsubMessages()
   }
@@ -132,7 +130,7 @@ async function sendReply(): Promise<void> {
   sendError.value = ''
   try {
     await addLiveChatMessage(chatId, {
-      sender: 'admin',
+      sender: 'volunteer',
       body,
       createdAt: Date.now(),
     })
@@ -143,29 +141,19 @@ async function sendReply(): Promise<void> {
     sending.value = false
   }
 }
-
-async function closeChat(): Promise<void> {
-  const chatId = selectedId.value
-  if (chatId.length === 0) {
-    return
-  }
-  try {
-    await updateLiveChatStatus(chatId, 'closed')
-  } catch {
-    sendError.value = 'Unable to close this chat.'
-  }
-}
 </script>
 
 <template>
-  <section class="bg-surface px-5 py-6 sm:px-8" aria-labelledby="admin-live-chat-heading">
-    <div class="mx-auto flex max-w-container flex-col gap-4">
-      <h2 id="admin-live-chat-heading" class="text-2xl font-bold text-text-default">Live Chat</h2>
-      <p class="text-sm text-text-muted">
-        Volunteers reply first. Unanswered chats are those waiting on a visitor or member message.
+  <section aria-labelledby="volunteer-live-chat-heading" class="bg-surface px-5 py-14 sm:px-8">
+    <div class="mx-auto flex max-w-container flex-col gap-6">
+      <h2 id="volunteer-live-chat-heading" class="text-2xl font-bold text-text-default sm:text-3xl">
+        Live chat
+      </h2>
+      <p class="text-base text-text-muted">
+        Reply to visitors and registered members. You cannot start a new live chat from here.
       </p>
       <div
-        v-if="chats.length === 0"
+        v-if="sortedChats.length === 0"
         class="rounded-md border border-border-default p-6 text-center"
       >
         <p class="text-sm text-text-muted">No live chat sessions yet.</p>
@@ -174,18 +162,18 @@ async function closeChat(): Promise<void> {
         <ul
           class="flex flex-col divide-y divide-border-default rounded-md border border-border-default"
         >
-          <li v-for="chat in chats" :key="chat.id">
+          <li v-for="chat in sortedChats" :key="chat.id">
             <button
               type="button"
               class="flex w-full flex-col items-start gap-1 px-4 py-3 text-left hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
               :class="selectedId === chat.id ? 'bg-surface-muted' : ''"
               @click="selectChat(chat.id)"
             >
-              <span class="text-sm font-bold text-text-default">{{ chat.guestName }}</span>
-              <span class="text-xs text-text-muted">{{ chat.guestEmail }}</span>
+              <span class="text-sm font-bold text-text-default">{{ chat.data.guestName }}</span>
+              <span class="text-xs text-text-muted">{{ chat.data.guestEmail }}</span>
               <span class="text-xs text-text-subtle">
-                {{ chat.origin === 'registered' ? 'Registered' : 'Visitor' }}
-                · {{ chat.status === 'open' ? 'Open' : 'Closed' }}
+                {{ chat.data.origin === 'registered' ? 'Registered' : 'Visitor' }}
+                · {{ chat.data.status === 'open' ? 'Open' : 'Closed' }}
                 <template v-if="isUnanswered(chat.id)"> · Unanswered</template>
               </span>
             </button>
@@ -196,20 +184,9 @@ async function closeChat(): Promise<void> {
             Select a conversation to reply.
           </p>
           <template v-else>
-            <div class="flex items-center justify-between gap-3">
-              <p class="text-sm font-bold text-text-default">
-                {{ selectedChat.guestName }} · {{ selectedChat.guestEmail }}
-              </p>
-              <AppButton
-                v-if="selectedChat.status === 'open'"
-                type="button"
-                variant="secondary"
-                size="sm"
-                @click="closeChat"
-              >
-                Close chat
-              </AppButton>
-            </div>
+            <p class="text-sm font-bold text-text-default">
+              {{ selectedChat.data.guestName }} · {{ selectedChat.data.guestEmail }}
+            </p>
             <ul
               class="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-md border border-border-default p-4"
             >
@@ -218,13 +195,19 @@ async function closeChat(): Promise<void> {
                 :key="message.id"
                 class="flex flex-col gap-1 rounded-md p-3"
                 :class="
-                  message.data.sender === 'admin' || message.data.sender === 'volunteer'
+                  message.data.sender === 'volunteer' || message.data.sender === 'admin'
                     ? 'bg-surface-muted'
                     : 'border border-border-default'
                 "
               >
                 <span class="text-xs font-bold text-text-subtle">
-                  {{ senderLabel(message.data.sender, selectedChat.guestName) }}
+                  {{
+                    message.data.sender === 'volunteer'
+                      ? 'You'
+                      : message.data.sender === 'admin'
+                        ? 'Admin'
+                        : selectedChat.data.guestName
+                  }}
                   · {{ formatMillisAsDdMmYyyy(message.data.createdAt) }}
                 </span>
                 <span class="text-sm text-text-default">{{ message.data.body }}</span>
@@ -232,15 +215,15 @@ async function closeChat(): Promise<void> {
             </ul>
             <p v-if="sendError" class="text-sm text-brand-donate" role="alert">{{ sendError }}</p>
             <form
-              v-if="selectedChat.status === 'open'"
+              v-if="selectedChat.data.status === 'open'"
               class="flex flex-col gap-2"
               @submit.prevent="sendReply"
             >
-              <label for="admin-live-chat-reply" class="text-sm font-medium text-text-default">
+              <label for="volunteer-live-chat-reply" class="text-sm font-medium text-text-default">
                 Reply
               </label>
               <textarea
-                id="admin-live-chat-reply"
+                id="volunteer-live-chat-reply"
                 v-model="draft"
                 rows="3"
                 required
