@@ -4,6 +4,7 @@ import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import VolunteerDashboardHeading from '@/components/volunteer/VolunteerDashboardHeading.vue'
 import VolunteerDashboardOpportunities from '@/components/volunteer/VolunteerDashboardOpportunities.vue'
 import VolunteerMessages from '@/components/volunteer/VolunteerMessages.vue'
+import VolunteerLiveChat from '@/components/volunteer/VolunteerLiveChat.vue'
 import VolunteerSummaryCards from '@/components/volunteer/VolunteerSummaryCards.vue'
 import VolunteerUpcomingEvents from '@/components/volunteer/VolunteerUpcomingEvents.vue'
 
@@ -22,5 +23,6 @@ const crumbs: readonly BreadcrumbItem[] = [
     <VolunteerUpcomingEvents />
     <VolunteerDashboardOpportunities />
     <VolunteerMessages />
+    <VolunteerLiveChat />
   </div>
 </template>

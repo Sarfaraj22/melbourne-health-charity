@@ -1,16 +1,21 @@
-import { onUnmounted, ref, watch, type Ref } from 'vue'
+import { computed, onUnmounted, ref, watch, type ComputedRef, type Ref } from 'vue'
 import {
   addLiveChatMessage,
   createLiveChat,
+  findLatestOpenLiveChatForUser,
   subscribeLiveChat,
   subscribeLiveChatMessages,
   type WithId,
 } from '@/services/firebase/firestore.service'
-import type { LiveChatDoc, LiveChatMessageDoc } from '@/types/firestore'
+import { useAuthStore } from '@/stores/auth.store'
+import type { LiveChatDoc, LiveChatMessageDoc, LiveChatSender } from '@/types/firestore'
+import type { Role } from '@/types/auth'
 
 const SESSION_KEY = 'mhc-live-chat-id'
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export type LiveChatPhase = 'start' | 'thread'
+export type LiveChatEntry = 'public' | 'user-dashboard'
 
 export interface UseLiveChatReturn {
   readonly phase: Ref<LiveChatPhase>
@@ -23,6 +28,9 @@ export interface UseLiveChatReturn {
   readonly sendError: Ref<string>
   readonly starting: Ref<boolean>
   readonly sending: Ref<boolean>
+  readonly staffRedirect: ComputedRef<string>
+  readonly skipIdentityForm: ComputedRef<boolean>
+  readonly authReady: ComputedRef<boolean>
   startChat: () => Promise<void>
   sendMessage: () => Promise<void>
 }
@@ -42,8 +50,6 @@ function writeSessionId(id: string): void {
     return
   }
 }
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function firebaseErrorCode(error: unknown): string {
   if (typeof error !== 'object' || error === null || !('code' in error)) {
@@ -65,7 +71,22 @@ function liveChatFailureMessage(error: unknown, action: 'start' | 'send'): strin
     : 'Unable to send your message. Please try again.'
 }
 
-export function useLiveChat(): UseLiveChatReturn {
+function staffHome(role: Role | undefined): string {
+  if (role === 'volunteer') {
+    return '/volunteer/portal'
+  }
+  if (role === 'admin') {
+    return '/admin/dashboard'
+  }
+  return ''
+}
+
+export function isCustomerLiveChatSender(sender: LiveChatSender): boolean {
+  return sender === 'visitor' || sender === 'user'
+}
+
+export function useLiveChat(entry: LiveChatEntry): UseLiveChatReturn {
+  const authStore = useAuthStore()
   const phase = ref<LiveChatPhase>('start')
   const guestName = ref<string>('')
   const guestEmail = ref<string>('')
@@ -76,10 +97,24 @@ export function useLiveChat(): UseLiveChatReturn {
   const sendError = ref<string>('')
   const starting = ref<boolean>(false)
   const sending = ref<boolean>(false)
-  const chatId = ref<string>(readSessionId())
+  const chatId = ref<string>('')
 
   let unsubChat: (() => void) | undefined
   let unsubMessages: (() => void) | undefined
+
+  const authReady = computed<boolean>(() => authStore.authState.status !== 'loading')
+  const skipIdentityForm = computed<boolean>(() => {
+    if (entry === 'user-dashboard') {
+      return true
+    }
+    return authStore.role === 'user'
+  })
+  const staffRedirect = computed<string>(() => {
+    if (entry !== 'public') {
+      return ''
+    }
+    return staffHome(authStore.role)
+  })
 
   function clearSubscriptions(): void {
     if (unsubChat !== undefined) {
@@ -124,23 +159,83 @@ export function useLiveChat(): UseLiveChatReturn {
     { immediate: true, deep: false },
   )
 
+  watch(
+    () => [authStore.authState.status, authStore.role, authStore.user?.uid] as const,
+    () => {
+      if (authStore.authState.status === 'loading') {
+        return
+      }
+      if (staffRedirect.value.length > 0) {
+        chatId.value = ''
+        return
+      }
+      if (skipIdentityForm.value) {
+        const uid = authStore.user?.uid
+        if (uid === undefined) {
+          return
+        }
+        void findLatestOpenLiveChatForUser(uid).then((existingId) => {
+          if (existingId !== undefined) {
+            chatId.value = existingId
+          }
+        })
+        return
+      }
+      const sessionId = readSessionId()
+      if (sessionId.length > 0 && chatId.value.length === 0) {
+        chatId.value = sessionId
+      }
+    },
+    { immediate: true, deep: false },
+  )
+
   onUnmounted(() => {
     clearSubscriptions()
   })
 
   async function startChat(): Promise<void> {
     startError.value = ''
-    const name = guestName.value.trim()
-    const email = guestEmail.value.trim()
-    if (name.length === 0 || !emailPattern.test(email)) {
-      startError.value = 'Please enter your name and a valid email address.'
+    if (staffRedirect.value.length > 0) {
       return
     }
     starting.value = true
     try {
+      if (skipIdentityForm.value) {
+        const user = authStore.user
+        if (user === undefined) {
+          startError.value = 'You need to be signed in to start live chat.'
+          return
+        }
+        const existingId = await findLatestOpenLiveChatForUser(user.uid)
+        if (existingId !== undefined) {
+          chatId.value = existingId
+          phase.value = 'thread'
+          return
+        }
+        const id = await createLiveChat({
+          guestName: user.displayName,
+          guestEmail: user.email,
+          origin: 'registered',
+          userId: user.uid,
+          status: 'open',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        })
+        chatId.value = id
+        phase.value = 'thread'
+        return
+      }
+      const name = guestName.value.trim()
+      const email = guestEmail.value.trim()
+      if (name.length === 0 || !emailPattern.test(email)) {
+        startError.value = 'Please enter your name and a valid email address.'
+        return
+      }
       const id = await createLiveChat({
         guestName: name,
         guestEmail: email,
+        origin: 'visitor',
+        userId: '',
         status: 'open',
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -159,13 +254,15 @@ export function useLiveChat(): UseLiveChatReturn {
     sendError.value = ''
     const id = chatId.value
     const body = draft.value.trim()
+    const user = authStore.user
     if (id.length === 0 || body.length === 0) {
       return
     }
+    const sender: LiveChatSender = skipIdentityForm.value && user !== undefined ? 'user' : 'visitor'
     sending.value = true
     try {
       await addLiveChatMessage(id, {
-        sender: 'guest',
+        sender,
         body,
         createdAt: Date.now(),
       })
@@ -188,6 +285,9 @@ export function useLiveChat(): UseLiveChatReturn {
     sendError,
     starting,
     sending,
+    staffRedirect,
+    skipIdentityForm,
+    authReady,
     startChat,
     sendMessage,
   }
