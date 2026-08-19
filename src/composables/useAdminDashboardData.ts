@@ -1,7 +1,8 @@
 import { computed, onMounted, onUnmounted, ref, type ComputedRef, type Ref } from 'vue'
 import {
   countContactMessages,
-  getRecentContactMessages,
+  subscribeContactMessages,
+  subscribeEmails,
   subscribeEvents,
   subscribeInboxMessages,
   subscribeLiveChats,
@@ -15,7 +16,9 @@ import {
 import type {
   AdminChartBar,
   AdminComplianceFeature,
+  AdminContactEnquiry,
   AdminDashboardData,
+  AdminEmailRecord,
   AdminEvent,
   AdminInboxThread,
   AdminKpiCard,
@@ -27,6 +30,8 @@ import type {
   AdminVolunteerApplication,
 } from '@/types/admin'
 import type {
+  ContactMessageDoc,
+  EmailDoc,
   EventRecordDoc,
   InboxMessageDoc,
   LiveChatDoc,
@@ -36,7 +41,6 @@ import type {
   VolunteerHoursDoc,
   VolunteerRecordDoc,
 } from '@/types/firestore'
-import type { ContactMessageDoc } from '@/types/firestore'
 
 export interface UseAdminDashboardDataReturn {
   readonly loading: Ref<boolean>
@@ -158,10 +162,43 @@ function mapLiveChat(record: WithId<LiveChatDoc>): AdminLiveChatThread {
     id: record.id,
     guestName: record.data.guestName,
     guestEmail: record.data.guestEmail,
+    origin: record.data.origin,
+    userId: record.data.userId,
     status: record.data.status,
     createdAt: record.data.createdAt,
     updatedAt: record.data.updatedAt,
   }
+}
+
+function mapEmail(record: WithId<EmailDoc>): AdminEmailRecord {
+  return {
+    id: record.id,
+    to: record.data.to,
+    fromAddress: record.data.fromAddress,
+    subject: record.data.subject,
+    body: record.data.body,
+    source: record.data.source,
+    folder: record.data.folder,
+    threadId: record.data.threadId,
+    contactId: record.data.contactId,
+    createdAt: record.data.createdAt,
+  }
+}
+
+function mapContact(record: WithId<ContactMessageDoc>): AdminContactEnquiry {
+  const base = {
+    id: record.id,
+    name: record.data.name,
+    email: record.data.email,
+    phone: record.data.phone,
+    subject: record.data.subject,
+    message: record.data.message,
+    createdAt: record.data.createdAt,
+  }
+  if (record.data.repliedAt === undefined) {
+    return base
+  }
+  return { ...base, repliedAt: record.data.repliedAt }
 }
 
 function mapInbox(record: WithId<InboxMessageDoc>): AdminInboxThread {
@@ -249,6 +286,8 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
   const inboxMessages = ref<readonly AdminInboxThread[]>([])
   const profiles = ref<readonly AdminProfile[]>([])
   const liveChats = ref<readonly AdminLiveChatThread[]>([])
+  const emails = ref<readonly AdminEmailRecord[]>([])
+  const contacts = ref<readonly AdminContactEnquiry[]>([])
   const openEnquiries = ref<number>(0)
 
   let unsubVolunteers: (() => void) | undefined
@@ -259,6 +298,8 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
   let unsubInbox: (() => void) | undefined
   let unsubProfiles: (() => void) | undefined
   let unsubLiveChats: (() => void) | undefined
+  let unsubEmails: (() => void) | undefined
+  let unsubContacts: (() => void) | undefined
 
   function handleError(message: string): void {
     error.value = message
@@ -357,11 +398,20 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
       () => handleError('Unable to load live chats.'),
     )
 
-    void getRecentContactMessages(5)
-      .then((contacts) => {
-        messages.value = buildMessages(contacts)
-      })
-      .catch(() => handleError('Unable to load messages.'))
+    unsubEmails = subscribeEmails(
+      (records) => {
+        emails.value = records.map(mapEmail)
+      },
+      () => handleError('Unable to load emails.'),
+    )
+
+    unsubContacts = subscribeContactMessages(
+      (records) => {
+        contacts.value = records.map(mapContact)
+        messages.value = buildMessages(records)
+      },
+      () => handleError('Unable to load contact messages.'),
+    )
 
     void countContactMessages()
       .then((count) => {
@@ -379,6 +429,8 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
     unsubInbox?.()
     unsubProfiles?.()
     unsubLiveChats?.()
+    unsubEmails?.()
+    unsubContacts?.()
   })
 
   const kpiCards = computed<readonly AdminKpiCard[]>(() => {
@@ -425,6 +477,8 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
     inboxMessages: inboxMessages.value,
     profiles: profiles.value,
     liveChats: liveChats.value,
+    emails: emails.value,
+    contacts: contacts.value,
     complianceFeatures,
   }))
 

@@ -7,7 +7,7 @@ import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import AdminKpiCards from '@/components/admin/AdminKpiCards.vue'
 import AdminVolunteerTable from '@/components/admin/AdminVolunteerTable.vue'
 import AdminVolunteerApplicationsTable from '@/components/admin/AdminVolunteerApplicationsTable.vue'
-import AdminBulkEmail from '@/components/admin/AdminBulkEmail.vue'
+import AdminEmail from '@/components/admin/AdminEmail.vue'
 import AdminEventTable from '@/components/admin/AdminEventTable.vue'
 import AdminReportsAnalytics from '@/components/admin/AdminReportsAnalytics.vue'
 import AdminLiveChat from '@/components/admin/AdminLiveChat.vue'
@@ -105,7 +105,7 @@ async function handleDeleteEvent(id: string): Promise<void> {
       <AdminKpiCards :cards="data.kpiCards" />
       <AdminVolunteerTable :volunteers="data.volunteers" @delete="handleDeleteVolunteer" />
       <AdminVolunteerApplicationsTable :applications="data.applications" />
-      <AdminBulkEmail :volunteers="data.volunteers" />
+      <AdminEmail :emails="data.emails" :contacts="data.contacts" :volunteers="data.volunteers" />
       <section class="bg-surface px-5 py-6 sm:px-8" aria-labelledby="admin-event-calendar-heading">
         <div class="mx-auto flex max-w-container flex-col gap-4">
           <h2 id="admin-event-calendar-heading" class="text-2xl font-bold text-text-default">
@@ -121,11 +121,7 @@ async function handleDeleteEvent(id: string): Promise<void> {
       />
       <AdminReportsAnalytics :chart-bars="data.chartBars" :metrics="data.reportMetrics" />
       <AdminLiveChat :chats="data.liveChats" />
-      <AdminMessagesEnquiries
-        :messages="data.messages"
-        :inbox-messages="data.inboxMessages"
-        :profiles="data.profiles"
-      />
+      <AdminMessagesEnquiries :profiles="data.profiles" />
       <AdminSecurityCompliance :features="data.complianceFeatures" />
     </div>
   </div>
