@@ -26,6 +26,7 @@ export interface UseAuthStoreReturn {
   register: (name: string, email: string, password: string) => Promise<AuthResult>
   signOut: () => Promise<AuthResult>
   sendPasswordReset: (email: string) => Promise<AuthResult>
+  refreshUser: () => Promise<void>
 }
 
 function roleHomePath(role: Role): string {
@@ -113,6 +114,15 @@ export const useAuthStore = defineStore('auth', (): UseAuthStoreReturn => {
     return sendPasswordResetService(email)
   }
 
+  async function refreshUser(): Promise<void> {
+    const firebaseUser = auth.currentUser
+    if (firebaseUser === null) {
+      clearUser()
+      return
+    }
+    await setUser(firebaseUser)
+  }
+
   return {
     authState,
     isAuthenticated,
@@ -126,6 +136,7 @@ export const useAuthStore = defineStore('auth', (): UseAuthStoreReturn => {
     register,
     signOut,
     sendPasswordReset,
+    refreshUser,
   }
 })
 

@@ -218,6 +218,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Login', ...guestMeta },
   },
   {
+    path: '/login/volunteer',
+    name: 'login-volunteer',
+    component: () => import('@/views/auth/LoginView.vue'),
+    meta: { title: 'Volunteer login', expectedRole: 'volunteer', ...guestMeta },
+  },
+  {
+    path: '/login/admin',
+    name: 'login-admin',
+    component: () => import('@/views/auth/LoginView.vue'),
+    meta: { title: 'Admin login', expectedRole: 'admin', ...guestMeta },
+  },
+  {
     path: '/register',
     name: 'register',
     component: () => import('@/views/auth/RegisterView.vue'),

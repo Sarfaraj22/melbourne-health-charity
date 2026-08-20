@@ -10,6 +10,38 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+const expectedRole = computed<Role | undefined>(() => route.meta.expectedRole)
+
+const loginFormBind = computed<Readonly<{ expectedRole: Role }> | Readonly<Record<string, never>>>(
+  () => {
+    const role = expectedRole.value
+    if (role === undefined) {
+      return {}
+    }
+    return { expectedRole: role }
+  },
+)
+
+const heading = computed<string>(() => {
+  if (expectedRole.value === 'volunteer') {
+    return 'Volunteer login'
+  }
+  if (expectedRole.value === 'admin') {
+    return 'Admin login'
+  }
+  return 'Welcome back'
+})
+
+const subtitle = computed<string>(() => {
+  if (expectedRole.value === 'volunteer') {
+    return 'Sign in to access the volunteer portal.'
+  }
+  if (expectedRole.value === 'admin') {
+    return 'Sign in to access the admin dashboard.'
+  }
+  return 'Sign in to access your account.'
+})
+
 const redirectTarget = computed<string | undefined>(() => {
   const value = route.query['redirect']
   return typeof value === 'string' && value.length > 0 ? value : undefined
@@ -22,7 +54,7 @@ function roleSatisfiesTarget(targetPath: string): boolean {
   if (required === undefined || currentRole === undefined) {
     return true
   }
-  return required.includes(currentRole as Role)
+  return required.includes(currentRole)
 }
 
 function handleSuccess(): void {
@@ -45,12 +77,12 @@ function handleSuccess(): void {
       <div class="flex flex-col items-center gap-3 text-center">
         <AppLogo size="md" />
         <div class="flex flex-col gap-1">
-          <h1 class="text-2xl font-bold text-text-default sm:text-3xl">Welcome back</h1>
-          <p class="text-sm text-text-muted">Sign in to access your account.</p>
+          <h1 class="text-2xl font-bold text-text-default sm:text-3xl">{{ heading }}</h1>
+          <p class="text-sm text-text-muted">{{ subtitle }}</p>
         </div>
       </div>
 
-      <LoginForm @success="handleSuccess" />
+      <LoginForm v-bind="loginFormBind" @success="handleSuccess" />
 
       <div class="flex flex-col gap-2 text-center text-sm text-text-muted">
         <router-link
@@ -59,7 +91,16 @@ function handleSuccess(): void {
         >
           Forgot your password?
         </router-link>
-        <p>
+        <p v-if="expectedRole === 'volunteer'">
+          Want to volunteer?
+          <router-link
+            to="/volunteer/become-a-volunteer"
+            class="font-medium text-brand-primary underline hover:text-brand-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          >
+            Become a volunteer
+          </router-link>
+        </p>
+        <p v-else-if="expectedRole === undefined">
           New to Melbourne Health Charity?
           <router-link
             to="/register"

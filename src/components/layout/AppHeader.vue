@@ -6,6 +6,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import AppLogo from '@/components/ui/AppLogo.vue'
 import { useAuthStore } from '@/stores/auth.store'
 import userIcon from '@/assets/icons/user.svg?raw'
+import chevronDownIcon from '@/assets/icons/chevron-down.svg?raw'
 
 interface NavLink {
   readonly label: string
@@ -28,6 +29,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const isMenuOpen = ref(false)
+const isLoginMenuOpen = ref(false)
 
 const accountLinkLabel = computed<string>(() => {
   switch (authStore.role) {
@@ -48,6 +50,11 @@ function toggleMenu(): void {
 
 function closeMenu(): void {
   isMenuOpen.value = false
+  isLoginMenuOpen.value = false
+}
+
+function toggleLoginMenu(): void {
+  isLoginMenuOpen.value = !isLoginMenuOpen.value
 }
 
 function isNavActive(link: NavLink): boolean {
@@ -119,14 +126,50 @@ async function handleLogout(): Promise<void> {
             Logout
           </button>
         </template>
-        <router-link
-          v-else
-          to="/login"
-          class="flex items-center gap-1.5 text-base font-medium text-text-default hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-        >
-          <AppIcon :svg="userIcon" class-name="[&>svg]:h-5 [&>svg]:w-5" />
-          Login
-        </router-link>
+        <div v-else class="relative flex items-center">
+          <router-link
+            to="/login"
+            class="flex items-center gap-1.5 text-base font-medium text-text-default hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          >
+            <AppIcon :svg="userIcon" class-name="[&>svg]:h-5 [&>svg]:w-5" />
+            Login
+          </router-link>
+          <button
+            type="button"
+            class="rounded p-1 text-text-default hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            :aria-expanded="isLoginMenuOpen"
+            aria-haspopup="true"
+            aria-controls="login-options-menu"
+            aria-label="More login options"
+            @click="toggleLoginMenu"
+          >
+            <AppIcon :svg="chevronDownIcon" class-name="[&>svg]:h-4 [&>svg]:w-4" />
+          </button>
+          <ul
+            v-if="isLoginMenuOpen"
+            id="login-options-menu"
+            class="absolute right-0 top-full z-50 mt-2 w-48 rounded border border-border-default bg-surface p-2 shadow-card"
+          >
+            <li>
+              <router-link
+                to="/login/volunteer"
+                class="block rounded px-3 py-2 text-sm font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                @click="closeMenu"
+              >
+                Volunteer login
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/login/admin"
+                class="block rounded px-3 py-2 text-sm font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                @click="closeMenu"
+              >
+                Admin login
+              </router-link>
+            </li>
+          </ul>
+        </div>
         <AppButton
           variant="donate"
           size="sm"
@@ -176,14 +219,52 @@ async function handleLogout(): Promise<void> {
             Logout
           </button>
         </template>
-        <router-link
-          v-else
-          to="/login"
-          class="block rounded px-3 py-2.5 text-base font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-          @click="closeMenu"
-        >
-          Login
-        </router-link>
+        <template v-else>
+          <div class="flex items-center justify-between gap-2">
+            <router-link
+              to="/login"
+              class="block flex-1 rounded px-3 py-2.5 text-base font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              @click="closeMenu"
+            >
+              Login
+            </router-link>
+            <button
+              type="button"
+              class="rounded p-2 text-text-default hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              :aria-expanded="isLoginMenuOpen"
+              aria-haspopup="true"
+              aria-controls="login-options-menu-mobile"
+              aria-label="More login options"
+              @click="toggleLoginMenu"
+            >
+              <AppIcon :svg="chevronDownIcon" class-name="[&>svg]:h-4 [&>svg]:w-4" />
+            </button>
+          </div>
+          <ul
+            v-if="isLoginMenuOpen"
+            id="login-options-menu-mobile"
+            class="flex flex-col gap-1 pl-3"
+          >
+            <li>
+              <router-link
+                to="/login/volunteer"
+                class="block rounded px-3 py-2.5 text-base font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                @click="closeMenu"
+              >
+                Volunteer login
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/login/admin"
+                class="block rounded px-3 py-2.5 text-base font-medium text-text-default hover:bg-surface-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                @click="closeMenu"
+              >
+                Admin login
+              </router-link>
+            </li>
+          </ul>
+        </template>
         <AppButton
           variant="donate"
           size="sm"

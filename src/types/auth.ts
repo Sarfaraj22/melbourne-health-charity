@@ -6,6 +6,7 @@ declare module 'vue-router' {
     readonly requiresAuth?: boolean
     readonly requiresGuest?: boolean
     readonly requiresRole?: readonly Role[]
+    readonly expectedRole?: Role
   }
 }
 

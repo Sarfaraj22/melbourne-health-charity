@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import FormFieldLabel from '@/components/ui/FormFieldLabel.vue'
 import mailIcon from '@/assets/icons/mail.svg?raw'
 import { useForgotPasswordForm } from '@/composables/useForgotPasswordForm'
 
@@ -36,17 +37,18 @@ function handleEmailInput(event: Event): void {
       class="flex items-center gap-2 rounded border border-brand-accent bg-surface-muted p-4 text-sm text-text-default"
     >
       <AppIcon :svg="mailIcon" class-name="shrink-0 text-brand-accent [&>svg]:h-5 [&>svg]:w-5" />
-      If an account exists for that email, a password reset link has been sent.
+      A password reset link has been sent.
     </p>
 
     <form v-else class="flex flex-col gap-4" novalidate @submit="handleSubmit">
       <div class="flex flex-col gap-1.5">
-        <label for="forgot-email" class="text-xs font-medium text-text-subtle">Email</label>
+        <FormFieldLabel html-for="forgot-email" :required="true">Email</FormFieldLabel>
         <input
           id="forgot-email"
           type="email"
           autocomplete="email"
           required
+          aria-required="true"
           :value="form.email"
           :aria-invalid="errors.email ? true : undefined"
           :aria-describedby="emailDescribedBy"

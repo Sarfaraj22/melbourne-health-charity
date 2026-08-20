@@ -5,6 +5,7 @@ import {
   type AuthResult,
   type LoginFormErrors,
   type LoginFormState,
+  type Role,
 } from '@/types/auth'
 
 export interface UseLoginFormReturn {
@@ -24,6 +25,16 @@ const initialFormState = (): LoginFormState => ({
 })
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function roleLoginError(expected: Role): string {
+  if (expected === 'volunteer') {
+    return 'This page is for volunteer accounts. Please use Volunteer login with a volunteer email, or sign in from the main login.'
+  }
+  if (expected === 'admin') {
+    return 'This page is for administrator accounts. Please use Admin login with a staff email, or sign in from the main login.'
+  }
+  return 'This account cannot be used on this login page.'
+}
 
 function validateForm(state: LoginFormState): LoginFormErrors {
   const errors: LoginFormErrors = {}
@@ -45,12 +56,18 @@ function clearFieldError(errors: Ref<LoginFormErrors>, field: keyof LoginFormErr
   if (errors.value[field] === undefined) {
     return
   }
-  const next: LoginFormErrors = { ...errors.value }
-  delete next[field]
+  const next: LoginFormErrors =
+    field === 'email'
+      ? errors.value.password === undefined
+        ? {}
+        : { password: errors.value.password }
+      : errors.value.email === undefined
+        ? {}
+        : { email: errors.value.email }
   errors.value = next
 }
 
-export function useLoginForm(): UseLoginFormReturn {
+export function useLoginForm(expectedRole?: Role): UseLoginFormReturn {
   const authStore = useAuthStore()
   const form = ref<LoginFormState>(initialFormState())
   const errors = ref<LoginFormErrors>({})
@@ -90,6 +107,12 @@ export function useLoginForm(): UseLoginFormReturn {
       errorMessage.value = result.error?.message ?? 'Unable to sign in. Please try again.'
       errors.value = { ...errors.value, ...fieldErrorsFromAuthError(result.error) }
       return result
+    }
+    if (expectedRole !== undefined && authStore.role !== expectedRole) {
+      await authStore.signOut()
+      status.value = 'error'
+      errorMessage.value = roleLoginError(expectedRole)
+      return { success: false }
     }
     status.value = 'idle'
     return result
