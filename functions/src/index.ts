@@ -5,13 +5,16 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { setGlobalOptions } from 'firebase-functions/v2'
-import { resendFrom } from './env.js'
+import { resendFrom, publicAppUrl } from './env.js'
 import {
   declineEmailHtml,
+  passwordResetEmailHtml,
   sendBulkBccEmail,
   sendHtmlEmail,
   sendPlainEmail,
+  sendPlainEmailToEach,
   welcomeEmailHtml,
+  type MailAttachment,
 } from './mail.js'
 
 initializeApp()
@@ -54,6 +57,65 @@ function readStringArray(data: Record<string, unknown>, key: string): readonly s
   return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
 }
 
+const ALLOWED_ATTACHMENT_TYPES = new Set<string>([
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+])
+
+const MAX_ATTACHMENT_FILES = 3
+const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
+
+function parseAttachments(data: Record<string, unknown>): readonly MailAttachment[] {
+  const value = data['attachments']
+  if (value === undefined) {
+    return []
+  }
+  if (!Array.isArray(value)) {
+    throw new HttpsError('invalid-argument', 'Attachments must be a list.')
+  }
+  if (value.length > MAX_ATTACHMENT_FILES) {
+    throw new HttpsError('invalid-argument', 'You can attach up to 3 files.')
+  }
+  const parsed: MailAttachment[] = []
+  let totalBytes = 0
+  for (const item of value) {
+    if (typeof item !== 'object' || item === null) {
+      throw new HttpsError('invalid-argument', 'Each attachment must include a file.')
+    }
+    const record = asRecord(item)
+    const filename = readString(record, 'filename')
+    const contentType = readString(record, 'contentType')
+    const contentBase64 = readString(record, 'contentBase64')
+    if (filename.length === 0 || filename.length > 200) {
+      throw new HttpsError('invalid-argument', 'Each attachment needs a valid file name.')
+    }
+    if (!ALLOWED_ATTACHMENT_TYPES.has(contentType)) {
+      throw new HttpsError(
+        'invalid-argument',
+        'Attachments must be PDF, Word, text, PNG, or JPEG files.',
+      )
+    }
+    if (contentBase64.length === 0) {
+      throw new HttpsError('invalid-argument', 'An attachment could not be read.')
+    }
+    const bytes = Buffer.from(contentBase64, 'base64')
+    totalBytes += bytes.byteLength
+    if (totalBytes > MAX_ATTACHMENT_BYTES) {
+      throw new HttpsError('invalid-argument', 'Attachments must be 4 MB or smaller in total.')
+    }
+    parsed.push({ filename, contentType, contentBase64 })
+  }
+  return parsed
+}
+
+function attachmentNamesOf(attachments: readonly MailAttachment[]): readonly string[] {
+  return attachments.map((attachment) => attachment.filename)
+}
+
 function requireAdmin(role: unknown): void {
   if (role !== 'admin') {
     throw new HttpsError('permission-denied', 'Only administrators can perform this action.')
@@ -62,6 +124,14 @@ function requireAdmin(role: unknown): void {
 
 function generatePassword(): string {
   return randomBytes(18).toString('base64url')
+}
+
+function firebaseAuthErrorCode(error: unknown): string {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return ''
+  }
+  const code = Reflect.get(error, 'code')
+  return typeof code === 'string' ? code : ''
 }
 
 function parseApplication(data: Record<string, unknown>): ApplicationFields {
@@ -118,6 +188,15 @@ export const reviewVolunteerApplication = onCall(
         const message = error instanceof Error ? error.message : 'Email failed.'
         throw new HttpsError('unavailable', message)
       }
+      const actor = callerIdentity(request)
+      await writeAuditLog(
+        actor.uid,
+        actor.email,
+        'update',
+        'volunteer_applications',
+        applicationId,
+        `Denied volunteer application for ${application.name}`,
+      )
       return { ok: true }
     }
 
@@ -153,6 +232,7 @@ export const reviewVolunteerApplication = onCall(
       displayName: application.name,
       email: application.email,
       role: 'volunteer',
+      disabled: false,
       createdAt: FieldValue.serverTimestamp(),
     })
     await appRef.update({
@@ -171,6 +251,15 @@ export const reviewVolunteerApplication = onCall(
       const message = error instanceof Error ? error.message : 'Email failed.'
       throw new HttpsError('unavailable', message)
     }
+    const actor = callerIdentity(request)
+    await writeAuditLog(
+      actor.uid,
+      actor.email,
+      'update',
+      'volunteer_applications',
+      applicationId,
+      `Approved volunteer application for ${application.name}`,
+    )
     return { ok: true }
   },
 )
@@ -199,6 +288,7 @@ async function writeEmailRecord(record: {
   readonly folder: EmailFolder
   readonly threadId: string
   readonly contactId: string
+  readonly attachmentNames: readonly string[]
 }): Promise<void> {
   await db.collection('emails').add({
     to: record.to,
@@ -209,8 +299,37 @@ async function writeEmailRecord(record: {
     folder: record.folder,
     threadId: record.threadId,
     contactId: record.contactId,
+    attachmentNames: [...record.attachmentNames],
     createdAt: FieldValue.serverTimestamp(),
   })
+}
+
+async function writeAuditLog(
+  actorUid: string,
+  actorEmail: string,
+  action: string,
+  collectionName: string,
+  documentId: string,
+  summary: string,
+): Promise<void> {
+  await db.collection('audit_logs').add({
+    actorUid,
+    actorEmail,
+    action,
+    collection: collectionName,
+    documentId,
+    summary,
+    createdAt: FieldValue.serverTimestamp(),
+  })
+}
+
+function callerIdentity(request: {
+  readonly auth?: { readonly uid: string; readonly token: { readonly email?: unknown } }
+}): { readonly uid: string; readonly email: string } {
+  const uid = request.auth === undefined ? '' : request.auth.uid
+  const emailClaim = request.auth === undefined ? undefined : request.auth.token.email
+  const email = typeof emailClaim === 'string' ? emailClaim : ''
+  return { uid, email }
 }
 
 async function collectVolunteerEmails(volunteerIds: readonly string[]): Promise<Set<string>> {
@@ -264,6 +383,7 @@ export const sendBulkEmail = onCall(
     const body = readString(payload, 'body')
     const audience = readAudience(payload)
     const volunteerIds = readStringArray(payload, 'volunteerIds')
+    const attachments = parseAttachments(payload)
     if (subject.length === 0 || body.length === 0) {
       throw new HttpsError('invalid-argument', 'Subject and body are required.')
     }
@@ -296,7 +416,11 @@ export const sendBulkEmail = onCall(
     }
 
     try {
-      const sent = await sendBulkBccEmail([...emails], subject, body)
+      const recipients = [...emails]
+      const sent =
+        attachments.length > 0
+          ? await sendPlainEmailToEach(recipients, subject, body, attachments)
+          : await sendBulkBccEmail(recipients, subject, body)
       await writeEmailRecord({
         to: PUBLIC_INQUIRY_EMAIL,
         fromAddress: resendFrom(),
@@ -306,7 +430,17 @@ export const sendBulkEmail = onCall(
         folder: 'sent',
         threadId: '',
         contactId: '',
+        attachmentNames: attachmentNamesOf(attachments),
       })
+      const actor = callerIdentity(request)
+      await writeAuditLog(
+        actor.uid,
+        actor.email,
+        'create',
+        'emails',
+        'bulk',
+        `Sent bulk email to ${String(sent)} recipients`,
+      )
       return { sent }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Email failed.'
@@ -324,6 +458,7 @@ export const sendDirectEmail = onCall(
     const subject = readString(payload, 'subject')
     const body = readString(payload, 'body')
     const contactId = readString(payload, 'contactId')
+    const attachments = parseAttachments(payload)
     if (!EMAIL_PATTERN.test(to) || subject.length === 0 || body.length === 0) {
       throw new HttpsError(
         'invalid-argument',
@@ -331,7 +466,7 @@ export const sendDirectEmail = onCall(
       )
     }
     try {
-      await sendPlainEmail(to, subject, body)
+      await sendPlainEmail(to, subject, body, attachments)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Email failed.'
       throw new HttpsError('unavailable', message)
@@ -346,13 +481,141 @@ export const sendDirectEmail = onCall(
       folder: 'sent',
       threadId: contactId,
       contactId,
+      attachmentNames: attachmentNamesOf(attachments),
     })
     if (contactId.length > 0) {
       await db.collection('contact_messages').doc(contactId).update({
         repliedAt: FieldValue.serverTimestamp(),
       })
     }
+    const actor = callerIdentity(request)
+    await writeAuditLog(
+      actor.uid,
+      actor.email,
+      'create',
+      'emails',
+      contactId.length > 0 ? contactId : 'direct',
+      `Sent email to ${to}`,
+    )
     return { ok: true }
+  },
+)
+
+export const requestPasswordReset = onCall(
+  { cors: true, invoker: 'public' },
+  async (request): Promise<{ readonly ok: true }> => {
+    const payload = asRecord(request.data)
+    const email = readString(payload, 'email').toLowerCase()
+    if (!EMAIL_PATTERN.test(email)) {
+      throw new HttpsError('invalid-argument', 'Please enter a valid email address.')
+    }
+
+    let user: UserRecord
+    try {
+      user = await auth.getUserByEmail(email)
+    } catch (error) {
+      if (firebaseAuthErrorCode(error) === 'auth/user-not-found') {
+        await writeAuditLog(
+          '',
+          email,
+          'update',
+          'auth',
+          'unknown',
+          'Password reset requested for unknown email',
+        )
+        throw new HttpsError('not-found', 'We could not find an account with that email address.')
+      }
+      throw new HttpsError('internal', 'Unable to verify this email address.')
+    }
+
+    const displayName = user.displayName === undefined ? '' : user.displayName
+    const continueUrl = `${publicAppUrl()}/login`
+    try {
+      const resetUrl = await auth.generatePasswordResetLink(email, { url: continueUrl })
+      const mail = passwordResetEmailHtml(displayName, resetUrl)
+      await sendHtmlEmail(
+        email,
+        'Reset your Melbourne Health Charity password',
+        mail.html,
+        mail.text,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to send reset email.'
+      throw new HttpsError('unavailable', message)
+    }
+
+    await writeAuditLog(user.uid, email, 'update', 'auth', user.uid, 'Password reset requested')
+    return { ok: true }
+  },
+)
+
+export const manageAuthUser = onCall(
+  { cors: true },
+  async (request): Promise<{ readonly ok: true }> => {
+    requireAdmin(request.auth?.token['role'])
+    const actor = callerIdentity(request)
+    const payload = asRecord(request.data)
+    const uid = readString(payload, 'uid')
+    const action = readString(payload, 'action')
+    if (uid.length === 0) {
+      throw new HttpsError('invalid-argument', 'uid is required.')
+    }
+    if (action !== 'disable' && action !== 'enable' && action !== 'delete') {
+      throw new HttpsError('invalid-argument', 'action must be disable, enable, or delete.')
+    }
+    if (actor.uid === uid) {
+      throw new HttpsError('failed-precondition', 'You cannot change your own account here.')
+    }
+    const profileRef = db.collection('profiles').doc(uid)
+    const profileSnap = await profileRef.get()
+    if (!profileSnap.exists) {
+      throw new HttpsError('not-found', 'Account profile not found.')
+    }
+    const rawProfile = profileSnap.data()
+    if (rawProfile === undefined) {
+      throw new HttpsError('not-found', 'Account profile not found.')
+    }
+    const profile = asRecord(rawProfile)
+    const role = readString(profile, 'role')
+    const email = readString(profile, 'email')
+    const displayName = readString(profile, 'displayName')
+    if (role === 'admin') {
+      throw new HttpsError('permission-denied', 'Admin accounts cannot be changed here.')
+    }
+    const label = displayName.length > 0 ? displayName : email
+    try {
+      if (action === 'delete') {
+        await auth.deleteUser(uid)
+        await profileRef.delete()
+        await writeAuditLog(
+          actor.uid,
+          actor.email,
+          'delete',
+          'profiles',
+          uid,
+          `Deleted account ${label}`,
+        )
+        return { ok: true }
+      }
+      const disabled = action === 'disable'
+      await auth.updateUser(uid, { disabled })
+      await profileRef.update({ disabled })
+      await writeAuditLog(
+        actor.uid,
+        actor.email,
+        'update',
+        'profiles',
+        uid,
+        `${disabled ? 'Disabled' : 'Enabled'} account ${label}`,
+      )
+      return { ok: true }
+    } catch (error) {
+      if (error instanceof HttpsError) {
+        throw error
+      }
+      const message = error instanceof Error ? error.message : 'Unable to update this account.'
+      throw new HttpsError('unavailable', message)
+    }
   },
 )
 
@@ -380,6 +643,7 @@ export const onContactMessageCreated = onDocumentCreated(
       folder: 'inbox',
       threadId: snap.id,
       contactId: snap.id,
+      attachmentNames: [],
     })
   },
 )

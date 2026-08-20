@@ -18,7 +18,7 @@ import {
   type QueryDocumentSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
-import { db } from '@/services/firebase/config'
+import { auth, db } from '@/services/firebase/config'
 import { decryptInboxBody, encryptInboxBody } from '@/utils/messageCrypto'
 import type {
   AdminEventStatus,
@@ -44,12 +44,15 @@ import type {
   ProfileDoc,
   ReportDoc,
   SavedResourceDoc,
+  ServiceReviewDoc,
   ThreadMessageDoc,
   TransportRequired,
   VolunteerApplicationDoc,
   VolunteerApplicationReviewStatus,
   VolunteerHoursDoc,
   VolunteerRecordDoc,
+  AuditLogAction,
+  AuditLogDoc,
 } from '@/types/firestore'
 
 function isString(value: unknown): value is string {
@@ -77,6 +80,14 @@ function asNumber(data: Record<string, unknown>, field: string): number {
 function asBoolean(data: Record<string, unknown>, field: string): boolean {
   const value = data[field]
   return isBoolean(value) ? value : false
+}
+
+function asAuditAction(data: Record<string, unknown>, field: string): AuditLogAction {
+  const value = asString(data, field)
+  if (value === 'create' || value === 'update' || value === 'delete') {
+    return value
+  }
+  return 'update'
 }
 
 function asStringArray(data: Record<string, unknown>, field: string): string[] {
@@ -637,8 +648,71 @@ async function deleteAdminRecord(path: string, id: string): Promise<void> {
   await deleteDoc(ref)
 }
 
+const auditLogConverter: FirestoreDataConverter<AuditLogDoc> = {
+  toFirestore(entry: AuditLogDoc): DocumentData {
+    return {
+      actorUid: entry.actorUid,
+      actorEmail: entry.actorEmail,
+      action: entry.action,
+      collection: entry.collection,
+      documentId: entry.documentId,
+      summary: entry.summary,
+      createdAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): AuditLogDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      actorUid: asString(data, 'actorUid'),
+      actorEmail: asString(data, 'actorEmail'),
+      action: asAuditAction(data, 'action'),
+      collection: asString(data, 'collection'),
+      documentId: asString(data, 'documentId'),
+      summary: asString(data, 'summary'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+export async function writeAuditLog(entry: {
+  readonly action: AuditLogAction
+  readonly collection: string
+  readonly documentId: string
+  readonly summary: string
+}): Promise<void> {
+  const user = auth.currentUser
+  if (user === null) {
+    return
+  }
+  const ref = collection(db, 'audit_logs').withConverter(auditLogConverter)
+  await addDoc(ref, {
+    actorUid: user.uid,
+    actorEmail: user.email ?? '',
+    action: entry.action,
+    collection: entry.collection,
+    documentId: entry.documentId,
+    summary: entry.summary,
+    createdAt: Date.now(),
+  })
+}
+
+async function recordAudit(
+  action: AuditLogAction,
+  collectionName: string,
+  documentId: string,
+  summary: string,
+): Promise<void> {
+  try {
+    await writeAuditLog({ action, collection: collectionName, documentId, summary })
+  } catch {
+    return
+  }
+}
+
 export async function createVolunteer(record: VolunteerRecordDoc): Promise<string> {
-  return createAdminRecord('volunteers', volunteerRecordConverter, record)
+  const id = await createAdminRecord('volunteers', volunteerRecordConverter, record)
+  await recordAudit('create', 'volunteers', id, `Created volunteer ${record.name}`)
+  return id
 }
 
 export function subscribeVolunteers(
@@ -659,14 +733,23 @@ export async function updateVolunteer(
   patch: Partial<VolunteerRecordDoc>,
 ): Promise<void> {
   await updateAdminRecord('volunteers', volunteerRecordConverter, id, patch)
+  await recordAudit('update', 'volunteers', id, 'Updated volunteer record')
 }
 
 export async function deleteVolunteer(id: string): Promise<void> {
   await deleteAdminRecord('volunteers', id)
+  await recordAudit('delete', 'volunteers', id, 'Deleted volunteer record')
 }
 
 export async function logVolunteerHours(entry: VolunteerHoursDoc): Promise<string> {
-  return createAdminRecord('volunteer_hours', volunteerHoursConverter, entry)
+  const id = await createAdminRecord('volunteer_hours', volunteerHoursConverter, entry)
+  await recordAudit(
+    'create',
+    'volunteer_hours',
+    id,
+    `Logged ${String(entry.hours)} hours for ${entry.volunteerName}`,
+  )
+  return id
 }
 
 export function subscribeVolunteerHours(
@@ -677,7 +760,9 @@ export function subscribeVolunteerHours(
 }
 
 export async function createEvent(record: EventRecordDoc): Promise<string> {
-  return createAdminRecord('events', eventRecordConverter, record)
+  const id = await createAdminRecord('events', eventRecordConverter, record)
+  await recordAudit('create', 'events', id, `Created event ${record.title}`)
+  return id
 }
 
 export function subscribeEvents(
@@ -695,14 +780,18 @@ export async function getEventById(id: string): Promise<EventRecordDoc | undefin
 
 export async function updateEvent(id: string, patch: Partial<EventRecordDoc>): Promise<void> {
   await updateAdminRecord('events', eventRecordConverter, id, patch)
+  await recordAudit('update', 'events', id, 'Updated event record')
 }
 
 export async function deleteEvent(id: string): Promise<void> {
   await deleteAdminRecord('events', id)
+  await recordAudit('delete', 'events', id, 'Deleted event record')
 }
 
 export async function createReport(report: ReportDoc): Promise<string> {
-  return createAdminRecord('reports', reportConverter, report)
+  const id = await createAdminRecord('reports', reportConverter, report)
+  await recordAudit('create', 'reports', id, `Generated report ${report.title}`)
+  return id
 }
 
 export function subscribeReports(
@@ -784,6 +873,7 @@ const profileConverter: FirestoreDataConverter<ProfileDoc> = {
       email: asString(data, 'email'),
       role: asMessageFromRole(data, 'role'),
       createdAt: asTimestampMillis(data, 'createdAt'),
+      disabled: asBoolean(data, 'disabled'),
     }
   },
 }
@@ -1020,6 +1110,19 @@ export async function getProfile(uid: string): Promise<WithId<ProfileDoc> | unde
   return { id: snap.id, data: snap.data() }
 }
 
+export async function updateProfileEmail(uid: string, email: string): Promise<void> {
+  const ref = doc(db, 'profiles', uid)
+  await updateDoc(ref, { email })
+  await recordAudit('update', 'profiles', uid, 'Updated account email')
+}
+
+export function subscribeAuditLogs(
+  callback: (records: readonly WithId<AuditLogDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeAdminRecords('audit_logs', auditLogConverter, callback, onError)
+}
+
 export async function createLiveChat(chat: LiveChatDoc): Promise<string> {
   return createAdminRecord('live_chats', liveChatConverter, chat)
 }
@@ -1137,6 +1240,7 @@ const emailConverter: FirestoreDataConverter<EmailDoc> = {
       folder: email.folder,
       threadId: email.threadId,
       contactId: email.contactId,
+      attachmentNames: [...email.attachmentNames],
       createdAt: serverTimestamp(),
     }
   },
@@ -1151,7 +1255,36 @@ const emailConverter: FirestoreDataConverter<EmailDoc> = {
       folder: asEmailFolder(data, 'folder'),
       threadId: asString(data, 'threadId'),
       contactId: asString(data, 'contactId'),
+      attachmentNames: asStringArray(data, 'attachmentNames'),
       createdAt: asTimestampMillis(data, 'createdAt'),
+    }
+  },
+}
+
+const serviceReviewConverter: FirestoreDataConverter<ServiceReviewDoc> = {
+  toFirestore(review: ServiceReviewDoc): DocumentData {
+    return {
+      userId: review.userId,
+      displayName: review.displayName,
+      serviceSlug: review.serviceSlug,
+      appointmentId: review.appointmentId,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+  },
+  fromFirestore(snap: QueryDocumentSnapshot<DocumentData>): ServiceReviewDoc {
+    const data = toUnknownRecord(snap.data())
+    return {
+      userId: asString(data, 'userId'),
+      displayName: asString(data, 'displayName'),
+      serviceSlug: asString(data, 'serviceSlug'),
+      appointmentId: asString(data, 'appointmentId'),
+      rating: asNumber(data, 'rating'),
+      comment: asString(data, 'comment'),
+      createdAt: asTimestampMillis(data, 'createdAt'),
+      updatedAt: asTimestampMillis(data, 'updatedAt'),
     }
   },
 }
@@ -1254,6 +1387,29 @@ export async function addThreadMessage(threadId: string, message: ThreadMessageD
   await updateDoc(threadRef, { updatedAt: serverTimestamp() })
 }
 
+export async function listThreadMessages(
+  threadId: string,
+): Promise<readonly WithId<ThreadMessageDoc>[]> {
+  const ref = collection(db, 'message_threads', threadId, 'messages').withConverter(
+    threadMessageConverter,
+  )
+  const snap = await getDocs(query(ref, limit(100)))
+  const records = snap.docs.map((item) => toWithId(item))
+  const decrypted = await Promise.all(
+    records.map(async (record) => ({
+      id: record.id,
+      data: {
+        senderUid: record.data.senderUid,
+        sender: record.data.sender,
+        fromRole: record.data.fromRole,
+        body: await decryptInboxBody(threadId, record.data.body),
+        createdAt: record.data.createdAt,
+      },
+    })),
+  )
+  return decrypted.slice().sort((left, right) => left.data.createdAt - right.data.createdAt)
+}
+
 export function subscribeLiveChatsForUser(
   userId: string,
   callback: (records: readonly WithId<LiveChatDoc>[]) => void,
@@ -1295,4 +1451,51 @@ export function subscribeEmails(
 
 export async function createEmailRecord(email: EmailDoc): Promise<string> {
   return createAdminRecord('emails', emailConverter, email)
+}
+
+export function serviceReviewId(userId: string, serviceSlug: string): string {
+  return `${userId}_${serviceSlug}`
+}
+
+export function subscribeServiceReviewsForSlug(
+  serviceSlug: string,
+  callback: (records: readonly WithId<ServiceReviewDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'service_reviews',
+    serviceReviewConverter,
+    [where('serviceSlug', '==', serviceSlug)],
+    callback,
+    onError,
+  )
+}
+
+export function subscribeServiceReviewsForUser(
+  userId: string,
+  callback: (records: readonly WithId<ServiceReviewDoc>[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return subscribeQuery(
+    'service_reviews',
+    serviceReviewConverter,
+    [where('userId', '==', userId)],
+    callback,
+    onError,
+  )
+}
+
+export async function upsertServiceReview(review: ServiceReviewDoc): Promise<void> {
+  const id = serviceReviewId(review.userId, review.serviceSlug)
+  const ref = doc(db, 'service_reviews', id).withConverter(serviceReviewConverter)
+  const existing = await getDoc(ref)
+  if (existing.exists()) {
+    await updateDoc(ref, {
+      rating: review.rating,
+      comment: review.comment,
+      updatedAt: serverTimestamp(),
+    })
+    return
+  }
+  await setDoc(ref, review)
 }

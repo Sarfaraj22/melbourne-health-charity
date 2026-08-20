@@ -134,6 +134,18 @@ export interface ProfileDoc {
   readonly email: string
   readonly role: MessageFromRole
   readonly createdAt: number
+  readonly disabled: boolean
+}
+
+export interface ServiceReviewDoc {
+  readonly userId: string
+  readonly displayName: string
+  readonly serviceSlug: string
+  readonly appointmentId: string
+  readonly rating: number
+  readonly comment: string
+  readonly createdAt: number
+  readonly updatedAt: number
 }
 
 export interface LiveChatDoc {
@@ -165,6 +177,18 @@ export interface MessageThreadDoc {
   readonly initiatedByUid: string
 }
 
+export type AuditLogAction = 'create' | 'update' | 'delete'
+
+export interface AuditLogDoc {
+  readonly actorUid: string
+  readonly actorEmail: string
+  readonly action: AuditLogAction
+  readonly collection: string
+  readonly documentId: string
+  readonly summary: string
+  readonly createdAt: number
+}
+
 export interface ThreadMessageDoc {
   readonly senderUid: string
   readonly sender: string
@@ -186,5 +210,6 @@ export interface EmailDoc {
   readonly folder: EmailFolder
   readonly threadId: string
   readonly contactId: string
+  readonly attachmentNames: readonly string[]
   readonly createdAt: number
 }
