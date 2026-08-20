@@ -33,6 +33,8 @@ export interface UseLiveChatReturn {
   readonly authReady: ComputedRef<boolean>
   startChat: () => Promise<void>
   sendMessage: () => Promise<void>
+  cancelStart: () => void
+  leaveThread: () => void
 }
 
 function readSessionId(): string {
@@ -98,12 +100,16 @@ export function useLiveChat(entry: LiveChatEntry): UseLiveChatReturn {
   const starting = ref<boolean>(false)
   const sending = ref<boolean>(false)
   const chatId = ref<string>('')
+  const viewDismissed = ref<boolean>(false)
 
   let unsubChat: (() => void) | undefined
   let unsubMessages: (() => void) | undefined
 
   const authReady = computed<boolean>(() => authStore.authState.status !== 'loading')
   const skipIdentityForm = computed<boolean>(() => {
+    if (authStore.user === undefined) {
+      return false
+    }
     if (entry === 'user-dashboard') {
       return true
     }
@@ -169,15 +175,19 @@ export function useLiveChat(entry: LiveChatEntry): UseLiveChatReturn {
         chatId.value = ''
         return
       }
+      if (viewDismissed.value) {
+        return
+      }
       if (skipIdentityForm.value) {
         const uid = authStore.user?.uid
         if (uid === undefined) {
           return
         }
         void findLatestOpenLiveChatForUser(uid).then((existingId) => {
-          if (existingId !== undefined) {
-            chatId.value = existingId
+          if (viewDismissed.value || existingId === undefined) {
+            return
           }
+          chatId.value = existingId
         })
         return
       }
@@ -193,7 +203,24 @@ export function useLiveChat(entry: LiveChatEntry): UseLiveChatReturn {
     clearSubscriptions()
   })
 
+  function cancelStart(): void {
+    guestName.value = ''
+    guestEmail.value = ''
+    startError.value = ''
+  }
+
+  function leaveThread(): void {
+    viewDismissed.value = true
+    draft.value = ''
+    sendError.value = ''
+    chat.value = undefined
+    messages.value = []
+    chatId.value = ''
+    phase.value = 'start'
+  }
+
   async function startChat(): Promise<void> {
+    viewDismissed.value = false
     startError.value = ''
     if (staffRedirect.value.length > 0) {
       return
@@ -203,7 +230,10 @@ export function useLiveChat(entry: LiveChatEntry): UseLiveChatReturn {
       if (skipIdentityForm.value) {
         const user = authStore.user
         if (user === undefined) {
-          startError.value = 'You need to be signed in to start live chat.'
+          startError.value =
+            entry === 'public'
+              ? 'Please enter your name and a valid email address.'
+              : 'You need to be signed in to start live chat.'
           return
         }
         const existingId = await findLatestOpenLiveChatForUser(user.uid)
@@ -290,5 +320,7 @@ export function useLiveChat(entry: LiveChatEntry): UseLiveChatReturn {
     authReady,
     startChat,
     sendMessage,
+    cancelStart,
+    leaveThread,
   }
 }
