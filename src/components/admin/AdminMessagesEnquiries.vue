@@ -39,6 +39,13 @@ function toggleCompose(): void {
   composeStatus.value = 'idle'
 }
 
+function cancelCompose(): void {
+  composeOpen.value = false
+  recipientUid.value = ''
+  composeBody.value = ''
+  composeStatus.value = 'idle'
+}
+
 async function handleCompose(): Promise<void> {
   composeStatus.value = 'submitting'
   const threadId = await startThreadWith(recipientUid.value, composeBody.value)
@@ -102,9 +109,19 @@ async function handleCompose(): Promise<void> {
           <p v-if="composeStatus === 'success'" class="text-sm text-status-success" role="status">
             Message sent.
           </p>
-          <AppButton type="submit" :disabled="composeStatus === 'submitting'">
-            {{ composeStatus === 'submitting' ? 'Sending...' : 'Send message' }}
-          </AppButton>
+          <div class="flex flex-wrap gap-2">
+            <AppButton type="submit" :disabled="composeStatus === 'submitting'">
+              {{ composeStatus === 'submitting' ? 'Sending...' : 'Send message' }}
+            </AppButton>
+            <AppButton
+              type="button"
+              variant="secondary"
+              :disabled="composeStatus === 'submitting'"
+              @click="cancelCompose"
+            >
+              Cancel
+            </AppButton>
+          </div>
         </form>
 
         <MessageThreadPanel
@@ -117,9 +134,11 @@ async function handleCompose(): Promise<void> {
           :send-error="sendError"
           empty-list-message="No internal conversations yet. Compose a message to start one."
           :can-reply="true"
+          :can-collapse="true"
           @select="selectThread"
           @update:draft="draft = $event"
           @send="sendReply"
+          @close="selectThread('')"
         />
       </div>
     </div>

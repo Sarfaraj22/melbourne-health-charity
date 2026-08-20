@@ -18,6 +18,7 @@ const {
   sending,
   sendError,
   composeError,
+  listError,
   selfUid,
   selectThread,
   sendReply,
@@ -26,6 +27,11 @@ const {
 
 async function chatWithCoordinator(): Promise<void> {
   if (coordinatorUid.value.length === 0) {
+    return
+  }
+  const existing = threads.value.find((thread) => thread.counterpartUid === coordinatorUid.value)
+  if (existing !== undefined) {
+    selectThread(existing.id)
     return
   }
   await startThreadWith(coordinatorUid.value)
@@ -61,8 +67,12 @@ async function chatWithCoordinator(): Promise<void> {
             <AppIcon :svg="lockIcon" class-name="text-text-subtle [&>svg]:size-3" />
             <p class="text-xs text-text-subtle">End-to-end encrypted</p>
           </div>
+          <p v-if="listError" class="text-sm text-brand-donate" role="alert">{{ listError }}</p>
           <p v-if="composeError" class="text-sm text-brand-donate" role="alert">
             {{ composeError }}
+          </p>
+          <p v-if="coordinatorUid.length === 0" class="text-sm text-text-muted">
+            A coordinator is not assigned yet. You will be able to chat here once one is assigned.
           </p>
           <AppButton
             type="button"
@@ -75,7 +85,7 @@ async function chatWithCoordinator(): Promise<void> {
           </AppButton>
         </aside>
 
-        <div class="flex flex-col gap-4 lg:col-span-2">
+        <div class="flex min-w-0 flex-col gap-4 lg:col-span-2">
           <MessageThreadPanel
             :threads="threads"
             :selected-id="selectedId"
@@ -86,9 +96,11 @@ async function chatWithCoordinator(): Promise<void> {
             :send-error="sendError"
             empty-list-message="No conversations yet. Chat with your coordinator to start one."
             :can-reply="true"
+            :can-collapse="true"
             @select="selectThread"
             @update:draft="draft = $event"
             @send="sendReply"
+            @close="selectThread('')"
           />
         </div>
       </div>

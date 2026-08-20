@@ -1,34 +1,42 @@
 <script setup lang="ts">
-import AppIcon from '@/components/ui/AppIcon.vue'
-import lockIcon from '@/assets/icons/lock.svg?raw'
-import { useUserDashboardData } from '@/composables/useUserDashboardData'
+import MessageThreadPanel from '@/components/messaging/MessageThreadPanel.vue'
+import { useMessageThreads } from '@/composables/useMessageThreads'
 
-const { messages } = useUserDashboardData()
+const {
+  threads,
+  selectedId,
+  messages,
+  draft,
+  sending,
+  sendError,
+  listError,
+  selfUid,
+  selectThread,
+  sendReply,
+} = useMessageThreads('self')
 </script>
 
 <template>
-  <section class="flex flex-col gap-4" aria-labelledby="dashboard-messages-heading">
-    <div class="flex items-center justify-between gap-2">
+  <section class="bg-surface px-5 py-6 sm:px-8" aria-labelledby="dashboard-messages-heading">
+    <div class="mx-auto flex max-w-container flex-col gap-4">
       <h2 id="dashboard-messages-heading" class="text-lg font-bold text-text-default">Messages</h2>
-      <router-link
-        to="/dashboard/messages"
-        class="text-sm font-medium text-brand-primary underline hover:text-brand-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-      >
-        View all
-      </router-link>
+      <p v-if="listError" class="text-sm text-brand-donate" role="alert">{{ listError }}</p>
+      <MessageThreadPanel
+        :threads="threads"
+        :selected-id="selectedId"
+        :messages="messages"
+        :self-uid="selfUid"
+        :draft="draft"
+        :sending="sending"
+        :send-error="sendError"
+        empty-list-message="You have no conversations yet. Staff will write to you here."
+        :can-reply="true"
+        :can-collapse="true"
+        @select="selectThread"
+        @update:draft="draft = $event"
+        @send="sendReply"
+        @close="selectThread('')"
+      />
     </div>
-
-    <div class="flex items-center gap-1.5">
-      <AppIcon :svg="lockIcon" class-name="text-text-subtle [&>svg]:h-3 [&>svg]:w-3" />
-      <p class="text-xs text-text-subtle">End-to-end encrypted</p>
-    </div>
-
-    <p v-if="messages.length === 0" class="text-sm text-text-muted">You have no messages yet.</p>
-    <ul v-else class="flex flex-col divide-y divide-border-default">
-      <li v-for="message in messages" :key="message.id" class="flex flex-col gap-1 py-3">
-        <p class="text-sm font-bold text-text-default">{{ message.sender }}</p>
-        <p class="text-sm text-text-muted">{{ message.preview }}</p>
-      </li>
-    </ul>
   </section>
 </template>
