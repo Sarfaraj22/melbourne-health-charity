@@ -1,12 +1,16 @@
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   getIdTokenResult,
-  sendPasswordResetEmail,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  updateEmail,
+  updatePassword,
   type User,
 } from 'firebase/auth'
 import { auth } from '@/services/firebase/config'
+import { requestPasswordReset } from '@/services/firebase/functions.service'
 import { upsertProfile } from '@/services/firebase/firestore.service'
 import type { AuthError, AuthResult, Role } from '@/types/auth'
 
@@ -38,8 +42,11 @@ function mappedAuthError(code: string, context: AuthErrorContext): AuthError {
   }
 
   if (context === 'passwordReset') {
-    if (code === 'auth/user-not-found') {
+    if (code === 'auth/user-not-found' || code === 'functions/not-found' || code === 'not-found') {
       return { code, message: RESET_NOT_FOUND_MESSAGE, field: 'email' }
+    }
+    if (code === 'functions/invalid-argument') {
+      return { code, message: INVALID_EMAIL_MESSAGE, field: 'email' }
     }
     return { code, message: GENERIC_AUTH_MESSAGE }
   }
@@ -108,6 +115,7 @@ export async function register(
       email: credential.user.email ?? email,
       role: 'user',
       createdAt: Date.now(),
+      disabled: false,
     })
     return { success: true, user: credential.user }
   } catch (error) {
@@ -126,10 +134,72 @@ export async function signOut(): Promise<AuthResult> {
 
 export async function sendPasswordReset(email: string): Promise<AuthResult> {
   try {
-    await sendPasswordResetEmail(auth, email)
+    await requestPasswordReset({ email })
     return { success: true }
   } catch (error) {
     return { success: false, error: toAuthError(error, 'passwordReset') }
+  }
+}
+
+async function reauthenticateCurrentUser(password: string): Promise<AuthResult> {
+  const user = auth.currentUser
+  if (user === null || user.email === null) {
+    return {
+      success: false,
+      error: { code: 'auth/unauthenticated', message: 'Please sign in again to continue.' },
+    }
+  }
+  try {
+    const credential = EmailAuthProvider.credential(user.email, password)
+    await reauthenticateWithCredential(user, credential)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: toAuthError(error, 'signIn') }
+  }
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<AuthResult> {
+  const reauth = await reauthenticateCurrentUser(currentPassword)
+  if (!reauth.success) {
+    return reauth
+  }
+  const user = auth.currentUser
+  if (user === null) {
+    return {
+      success: false,
+      error: { code: 'auth/unauthenticated', message: 'Please sign in again to continue.' },
+    }
+  }
+  try {
+    await updatePassword(user, newPassword)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: toAuthError(error, 'generic') }
+  }
+}
+
+export async function changeEmail(currentPassword: string, newEmail: string): Promise<AuthResult> {
+  const reauth = await reauthenticateCurrentUser(currentPassword)
+  if (!reauth.success) {
+    return reauth
+  }
+  const user = auth.currentUser
+  if (user === null) {
+    return {
+      success: false,
+      error: { code: 'auth/unauthenticated', message: 'Please sign in again to continue.' },
+    }
+  }
+  try {
+    await updateEmail(user, newEmail)
+    const { updateProfileEmail } = await import('@/services/firebase/firestore.service')
+    await updateProfileEmail(user.uid, newEmail)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: toAuthError(error, 'generic') }
   }
 }
 

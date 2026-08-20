@@ -18,7 +18,6 @@ const settingsRows: readonly DashboardSettingsRow[] = [
     to: '/dashboard/profile-settings',
   },
   { id: 'settings-3', label: 'Text Size', value: 'Medium', to: '/dashboard/profile-settings' },
-  { id: 'settings-4', label: 'Language', value: 'English', to: '/dashboard/profile-settings' },
 ]
 
 const dashboardContent: DashboardContent = {

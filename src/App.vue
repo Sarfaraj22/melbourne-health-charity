@@ -3,6 +3,7 @@ import { watch } from 'vue'
 import AccessibilityBar from '@/components/layout/AccessibilityBar.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
+import LiveChatFab from '@/components/layout/LiveChatFab.vue'
 import { useAccessibilityStore } from '@/stores/accessibility.store'
 import { assertNever } from '@/utils/assertNever'
 import type { TextScale } from '@/stores/accessibility.store'
@@ -58,4 +59,5 @@ watch(
     <router-view />
   </main>
   <AppFooter />
+  <LiveChatFab />
 </template>

@@ -39,7 +39,10 @@ import hero800Jpg from '@/assets/images/hero-800.jpg'
         independently, with dignity and choice.
       </p>
       <div class="flex flex-col gap-4 sm:flex-row">
-        <AppButton variant="primary" to="/get-support/book-appointment">Book Appointment</AppButton>
+        <AppButton variant="primary" to="/get-support">Get Support</AppButton>
+        <AppButton variant="secondary" to="/get-support/book-appointment">
+          Book Appointment
+        </AppButton>
         <AppButton variant="secondary" to="/services">Find Services</AppButton>
       </div>
     </div>

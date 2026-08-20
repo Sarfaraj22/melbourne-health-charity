@@ -21,6 +21,12 @@ function volunteerSortValue(row: AdminVolunteer, key: string): string | number {
   switch (key) {
     case 'name':
       return row.name.toLowerCase()
+    case 'email':
+      return row.email.toLowerCase()
+    case 'phone':
+      return row.phone.toLowerCase()
+    case 'address':
+      return row.address.toLowerCase()
     case 'status':
       return row.status
     case 'trainingPercent':
@@ -30,6 +36,10 @@ function volunteerSortValue(row: AdminVolunteer, key: string): string | number {
     default:
       return ''
   }
+}
+
+function displayContactField(value: string): string {
+  return value.trim().length === 0 ? '—' : value
 }
 
 const {
@@ -49,6 +59,8 @@ const {
   rows: (): readonly AdminVolunteer[] => props.volunteers,
   searchFields: ['name', 'email', 'phone', 'address', 'status'],
   pageSize: 10,
+  defaultSortKey: 'name',
+  defaultSortDirection: 'asc',
   getSortValue: volunteerSortValue,
 })
 
@@ -79,7 +91,7 @@ function sortIndicator(key: string): string {
   if (order === 'descending') {
     return '▼'
   }
-  return ''
+  return '↕'
 }
 </script>
 
@@ -156,6 +168,48 @@ function sortIndicator(key: string): string {
                 </th>
                 <th
                   scope="col"
+                  :aria-sort="ariaSortFor('email')"
+                  class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-subtle"
+                >
+                  <button
+                    type="button"
+                    class="font-medium uppercase tracking-wide text-text-subtle hover:text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    aria-label="Sort by email"
+                    @click="toggleSort('email')"
+                  >
+                    Email {{ sortIndicator('email') }}
+                  </button>
+                </th>
+                <th
+                  scope="col"
+                  :aria-sort="ariaSortFor('phone')"
+                  class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-subtle"
+                >
+                  <button
+                    type="button"
+                    class="font-medium uppercase tracking-wide text-text-subtle hover:text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    aria-label="Sort by phone"
+                    @click="toggleSort('phone')"
+                  >
+                    Phone {{ sortIndicator('phone') }}
+                  </button>
+                </th>
+                <th
+                  scope="col"
+                  :aria-sort="ariaSortFor('address')"
+                  class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-subtle"
+                >
+                  <button
+                    type="button"
+                    class="font-medium uppercase tracking-wide text-text-subtle hover:text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    aria-label="Sort by address"
+                    @click="toggleSort('address')"
+                  >
+                    Address {{ sortIndicator('address') }}
+                  </button>
+                </th>
+                <th
+                  scope="col"
                   :aria-sort="ariaSortFor('status')"
                   class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wide text-text-subtle"
                 >
@@ -208,6 +262,13 @@ function sortIndicator(key: string): string {
                 class="border-b border-border-default last:border-b-0"
               >
                 <td class="px-5 py-4 text-sm font-bold text-text-default">{{ volunteer.name }}</td>
+                <td class="px-5 py-4 text-sm text-text-default">{{ volunteer.email }}</td>
+                <td class="px-5 py-4 text-sm text-text-default">
+                  {{ displayContactField(volunteer.phone) }}
+                </td>
+                <td class="px-5 py-4 text-sm text-text-default">
+                  {{ displayContactField(volunteer.address) }}
+                </td>
                 <td class="px-5 py-4">
                   <span
                     :class="[

@@ -1,6 +1,10 @@
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { firebaseApp } from '@/services/firebase/config'
 import type {
+  ManageAuthUserRequest,
+  ManageAuthUserResult,
+  RequestPasswordResetRequest,
+  RequestPasswordResetResult,
   ReviewVolunteerApplicationRequest,
   ReviewVolunteerApplicationResult,
   SendBulkEmailRequest,
@@ -52,6 +56,36 @@ export async function sendBulkEmail(payload: SendBulkEmailRequest): Promise<Send
   const callable = httpsCallable<SendBulkEmailRequest, SendBulkEmailResult>(
     functions,
     'sendBulkEmail',
+  )
+  try {
+    const result = await callable(payload)
+    return result.data
+  } catch (error) {
+    throw toError(error)
+  }
+}
+
+export async function requestPasswordReset(
+  payload: RequestPasswordResetRequest,
+): Promise<RequestPasswordResetResult> {
+  const callable = httpsCallable<RequestPasswordResetRequest, RequestPasswordResetResult>(
+    functions,
+    'requestPasswordReset',
+  )
+  try {
+    const result = await callable(payload)
+    return result.data
+  } catch (error) {
+    throw toError(error)
+  }
+}
+
+export async function manageAuthUser(
+  payload: ManageAuthUserRequest,
+): Promise<ManageAuthUserResult> {
+  const callable = httpsCallable<ManageAuthUserRequest, ManageAuthUserResult>(
+    functions,
+    'manageAuthUser',
   )
   try {
     const result = await callable(payload)

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+import xIcon from '@/assets/icons/x.svg?raw'
 import {
   addLiveChatMessage,
   subscribeLiveChatMessages,
@@ -200,15 +202,25 @@ async function closeChat(): Promise<void> {
               <p class="text-sm font-bold text-text-default">
                 {{ selectedChat.guestName }} · {{ selectedChat.guestEmail }}
               </p>
-              <AppButton
-                v-if="selectedChat.status === 'open'"
-                type="button"
-                variant="secondary"
-                size="sm"
-                @click="closeChat"
-              >
-                Close chat
-              </AppButton>
+              <div class="flex items-center gap-2">
+                <AppButton
+                  v-if="selectedChat.status === 'open'"
+                  type="button"
+                  variant="secondary"
+                  size="xs"
+                  @click="closeChat"
+                >
+                  Close chat
+                </AppButton>
+                <button
+                  type="button"
+                  class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-text-subtle hover:bg-surface-muted hover:text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                  aria-label="Close conversation"
+                  @click="selectChat('')"
+                >
+                  <AppIcon :svg="xIcon" class-name="[&>svg]:h-4 [&>svg]:w-4" />
+                </button>
+              </div>
             </div>
             <ul
               class="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-md border border-border-default p-4"

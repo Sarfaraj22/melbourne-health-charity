@@ -3,6 +3,12 @@ import { publicAppUrl, resendApiKey, resendFrom } from './env.js'
 
 const BCC_CHUNK_SIZE = 40
 
+export interface MailAttachment {
+  readonly filename: string
+  readonly contentType: string
+  readonly contentBase64: string
+}
+
 function client(): Resend {
   return new Resend(resendApiKey())
 }
@@ -11,11 +17,22 @@ function fromAddress(): string {
   return `Melbourne Health Charity <${resendFrom()}>`
 }
 
+function toResendAttachments(
+  attachments: readonly MailAttachment[],
+): { readonly filename: string; readonly content: Buffer; readonly contentType: string }[] {
+  return attachments.map((attachment) => ({
+    filename: attachment.filename,
+    content: Buffer.from(attachment.contentBase64, 'base64'),
+    contentType: attachment.contentType,
+  }))
+}
+
 export async function sendHtmlEmail(
   to: string,
   subject: string,
   html: string,
   text: string,
+  attachments: readonly MailAttachment[] = [],
 ): Promise<void> {
   const { error } = await client().emails.send({
     from: fromAddress(),
@@ -23,15 +40,21 @@ export async function sendHtmlEmail(
     subject,
     html,
     text,
+    ...(attachments.length > 0 ? { attachments: toResendAttachments(attachments) } : {}),
   })
   if (error) {
     throw new Error(error.message)
   }
 }
 
-export async function sendPlainEmail(to: string, subject: string, body: string): Promise<void> {
+export async function sendPlainEmail(
+  to: string,
+  subject: string,
+  body: string,
+  attachments: readonly MailAttachment[] = [],
+): Promise<void> {
   const html = `<p>${escapeHtml(body).replaceAll('\n', '<br/>')}</p>`
-  await sendHtmlEmail(to, subject, html, body)
+  await sendHtmlEmail(to, subject, html, body, attachments)
 }
 
 export async function sendBulkBccEmail(
@@ -60,6 +83,18 @@ export async function sendBulkBccEmail(
     sent += chunk.length
   }
   return sent
+}
+
+export async function sendPlainEmailToEach(
+  recipients: readonly string[],
+  subject: string,
+  body: string,
+  attachments: readonly MailAttachment[],
+): Promise<number> {
+  for (const to of recipients) {
+    await sendPlainEmail(to, subject, body, attachments)
+  }
+  return recipients.length
 }
 
 export function welcomeEmailHtml(
@@ -105,6 +140,29 @@ export function declineEmailHtml(name: string): { readonly html: string; readonl
   const html = `<p>Hello ${escapeHtml(name)},</p>
 <p>Thank you for applying to volunteer with Melbourne Health Charity. We are unable to offer you a volunteer place at this time.</p>
 <p>You are welcome to apply again in the future.</p>
+<p>Melbourne Health Charity</p>`
+  return { html, text }
+}
+
+export function passwordResetEmailHtml(
+  name: string,
+  resetUrl: string,
+): { readonly html: string; readonly text: string } {
+  const greeting = name.length > 0 ? name : 'there'
+  const text = [
+    `Hello ${greeting},`,
+    '',
+    'We received a request to reset your Melbourne Health Charity password.',
+    `Reset your password: ${resetUrl}`,
+    '',
+    'If you did not request this, you can ignore this email.',
+    '',
+    'Melbourne Health Charity',
+  ].join('\n')
+  const html = `<p>Hello ${escapeHtml(greeting)},</p>
+<p>We received a request to reset your Melbourne Health Charity password.</p>
+<p><a href="${escapeHtml(resetUrl)}">Reset your password</a></p>
+<p>If you did not request this, you can ignore this email.</p>
 <p>Melbourne Health Charity</p>`
   return { html, text }
 }

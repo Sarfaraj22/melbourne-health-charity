@@ -29,7 +29,12 @@ async function handleLogout(): Promise<void> {
           </li>
           <li class="flex items-center justify-between py-3.5">
             <span class="text-sm font-medium text-text-default">Email</span>
-            <span class="text-sm text-text-muted">{{ authStore.user?.email || '—' }}</span>
+            <router-link
+              to="/dashboard/profile-settings"
+              class="text-sm text-text-muted hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            >
+              {{ authStore.user?.email || '—' }} Edit <span aria-hidden="true">&rsaquo;</span>
+            </router-link>
           </li>
           <li v-for="row in rows" :key="row.id" class="flex items-center justify-between py-3.5">
             <span class="text-sm font-medium text-text-default">{{ row.label }}</span>

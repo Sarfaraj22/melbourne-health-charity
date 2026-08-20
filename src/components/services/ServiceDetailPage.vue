@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import ServiceBreadcrumb from '@/components/services/ServiceBreadcrumb.vue'
 import ServiceInfoSection from '@/components/services/ServiceInfoSection.vue'
 import ServiceInfoGrid from '@/components/services/ServiceInfoGrid.vue'
+import ServiceReviewsList from '@/components/services/ServiceReviewsList.vue'
 import BookingFormCard from '@/components/services/BookingFormCard.vue'
 import EligibilityCheckerCard from '@/components/services/EligibilityCheckerCard.vue'
 import NeedHelpSection from '@/components/services/NeedHelpSection.vue'
@@ -21,13 +22,15 @@ const infoSectionHeading = computed((): string | undefined =>
 )
 
 const activities = computed((): readonly string[] => props.detail.activities ?? [])
+
+const showReviews = computed<boolean>(() => props.detail.variant === 'booking')
 </script>
 
 <template>
   <div class="bg-surface">
     <ServiceBreadcrumb :crumbs="crumbs" />
 
-    <div class="mx-auto max-w-container px-5 py-12 sm:px-8">
+    <div class="mx-auto flex max-w-container flex-col gap-10 px-5 py-12 sm:px-8">
       <div v-if="detail.variant === 'info'" class="flex min-w-0 flex-col gap-10">
         <ServiceInfoGrid :service="detail" />
 
@@ -57,6 +60,8 @@ const activities = computed((): readonly string[] => props.detail.activities ?? 
           <BookingFormCard v-else :initial-service-slug="detail.slug" />
         </div>
       </div>
+
+      <ServiceReviewsList v-if="showReviews" :service-slug="detail.slug" />
     </div>
 
     <NeedHelpSection />

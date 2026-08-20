@@ -31,6 +31,8 @@ const {
   authReady,
   startChat,
   sendMessage,
+  cancelStart,
+  leaveThread,
 } = useLiveChat('public')
 </script>
 
@@ -92,9 +94,20 @@ const {
             step in if needed.
           </p>
           <p v-if="startError" class="text-sm text-brand-accent" role="alert">{{ startError }}</p>
-          <AppButton type="submit" variant="primary" :disabled="starting">
-            {{ starting ? 'Starting...' : 'Start live chat' }}
-          </AppButton>
+          <div class="flex flex-wrap gap-2">
+            <AppButton type="submit" variant="primary" :disabled="starting">
+              {{ starting ? 'Starting...' : 'Start live chat' }}
+            </AppButton>
+            <AppButton
+              v-if="!skipIdentityForm"
+              type="button"
+              variant="secondary"
+              :disabled="starting"
+              @click="cancelStart"
+            >
+              Cancel
+            </AppButton>
+          </div>
         </form>
 
         <div v-else class="flex flex-col gap-4">
@@ -141,13 +154,18 @@ const {
               required
               class="rounded border border-border-default px-3 py-2.5 text-sm text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
             />
-            <AppButton
-              type="submit"
-              variant="primary"
-              :disabled="sending || draft.trim().length === 0"
-            >
-              {{ sending ? 'Sending...' : 'Send' }}
-            </AppButton>
+            <div class="flex flex-wrap gap-2">
+              <AppButton
+                type="submit"
+                variant="primary"
+                :disabled="sending || draft.trim().length === 0"
+              >
+                {{ sending ? 'Sending...' : 'Send' }}
+              </AppButton>
+              <AppButton type="button" variant="secondary" :disabled="sending" @click="leaveThread">
+                Cancel
+              </AppButton>
+            </div>
           </form>
           <AppButton variant="secondary" to="/contact">Go to contact</AppButton>
         </div>

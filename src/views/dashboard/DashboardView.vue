@@ -3,6 +3,8 @@ import type { BreadcrumbItem } from '@/types/service'
 import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import DashboardGreeting from '@/components/dashboard/DashboardGreeting.vue'
 import UpcomingAppointmentCard from '@/components/dashboard/UpcomingAppointmentCard.vue'
+import DashboardServiceReviews from '@/components/dashboard/DashboardServiceReviews.vue'
+import UserLiveChat from '@/components/dashboard/UserLiveChat.vue'
 import DashboardMessages from '@/components/dashboard/DashboardMessages.vue'
 import DashboardSavedResources from '@/components/dashboard/DashboardSavedResources.vue'
 import DashboardUpcomingEvents from '@/components/dashboard/DashboardUpcomingEvents.vue'
@@ -16,12 +18,10 @@ const crumbs: readonly BreadcrumbItem[] = [{ label: 'Home', to: '/' }, { label: 
     <AppBreadcrumb :crumbs="crumbs" />
     <DashboardGreeting />
     <UpcomingAppointmentCard />
-    <section class="bg-surface px-5 py-6 sm:px-8">
-      <div class="mx-auto grid max-w-container grid-cols-1 gap-6 lg:grid-cols-2">
-        <DashboardMessages />
-        <DashboardSavedResources />
-      </div>
-    </section>
+    <DashboardServiceReviews />
+    <UserLiveChat />
+    <DashboardMessages />
+    <DashboardSavedResources />
     <DashboardUpcomingEvents />
     <DashboardProfileSettings />
   </div>

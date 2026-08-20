@@ -3,9 +3,16 @@ import type { ServiceImageSet } from '@/types/service'
 export interface DashboardAppointment {
   readonly id: string
   readonly service: string
+  readonly serviceSlug: string
   readonly date: string
   readonly time: string
   readonly location: string
+}
+
+export interface DashboardAccessedService {
+  readonly serviceSlug: string
+  readonly title: string
+  readonly appointmentId: string
 }
 
 export interface DashboardMessage {

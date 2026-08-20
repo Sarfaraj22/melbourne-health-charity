@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import AdminEmailAttachments from '@/components/admin/AdminEmailAttachments.vue'
+import { useEmailAttachments } from '@/composables/useEmailAttachments'
 import { sendBulkEmail } from '@/services/firebase/functions.service'
 import type { AdminVolunteer } from '@/types/admin'
 import type { BulkEmailAudience } from '@/types/functions'
@@ -11,6 +13,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const emit = defineEmits<{
+  cancel: []
+}>()
+
 const subject = ref<string>('')
 const body = ref<string>('')
 const audience = ref<BulkEmailAudience>('volunteers')
@@ -19,6 +25,7 @@ const selectedIds = ref<ReadonlySet<string>>(new Set())
 const status = ref<'idle' | 'submitting' | 'success' | 'error'>('idle')
 const errorMessage = ref<string>('')
 const sentCount = ref<number>(0)
+const attachments = useEmailAttachments()
 
 const selectedCount = computed<number>(() => {
   if (sendSelectedVolunteers.value) {
@@ -57,12 +64,18 @@ async function handleSubmit(): Promise<void> {
     errorMessage.value = 'Select at least one volunteer, or send to an audience.'
     return
   }
+  if (attachments.errorMessage.length > 0) {
+    status.value = 'error'
+    errorMessage.value = attachments.errorMessage
+    return
+  }
   try {
     const result = await sendBulkEmail({
       subject: subject.value.trim(),
       body: body.value.trim(),
       audience: audience.value,
       volunteerIds: sendSelectedVolunteers.value ? [...selectedIds.value] : [],
+      attachments: await attachments.toPayload(),
     })
     sentCount.value = result.sent
     status.value = 'success'
@@ -70,6 +83,19 @@ async function handleSubmit(): Promise<void> {
     status.value = 'error'
     errorMessage.value = error instanceof Error ? error.message : 'Unable to send email.'
   }
+}
+
+function cancel(): void {
+  subject.value = ''
+  body.value = ''
+  audience.value = 'volunteers'
+  sendSelectedVolunteers.value = false
+  selectedIds.value = new Set()
+  status.value = 'idle'
+  errorMessage.value = ''
+  sentCount.value = 0
+  attachments.clear()
+  emit('cancel')
 }
 </script>
 
@@ -130,14 +156,33 @@ async function handleSubmit(): Promise<void> {
         class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
       />
     </div>
+    <AdminEmailAttachments
+      field-id="bulk-email-files"
+      :files="attachments.files"
+      :error-message="attachments.errorMessage"
+      :accept="attachments.accept"
+      :hint="attachments.hint"
+      @add="attachments.addFiles"
+      @remove="attachments.removeFile"
+    />
     <p v-if="status === 'error'" class="text-sm text-brand-donate" role="alert">
       {{ errorMessage }}
     </p>
     <p v-if="status === 'success'" class="text-sm text-status-success" role="status">
       Sent to {{ sentCount }} recipient{{ sentCount === 1 ? '' : 's' }}.
     </p>
-    <AppButton type="submit" :disabled="status === 'submitting'">
-      {{ status === 'submitting' ? 'Sending...' : `Send email (${selectedCount})` }}
-    </AppButton>
+    <div class="flex flex-wrap gap-2">
+      <AppButton type="submit" :disabled="status === 'submitting'">
+        {{ status === 'submitting' ? 'Sending...' : `Send email (${selectedCount})` }}
+      </AppButton>
+      <AppButton
+        type="button"
+        variant="secondary"
+        :disabled="status === 'submitting'"
+        @click="cancel"
+      >
+        Cancel
+      </AppButton>
+    </div>
   </form>
 </template>

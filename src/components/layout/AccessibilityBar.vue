@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useAccessibilityStore } from '@/stores/accessibility.store'
 
 const a11y = useAccessibilityStore()
-const isLanguageOpen = ref(false)
 
 const chipClass =
   'rounded border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary'
@@ -36,10 +35,6 @@ const statusChips: readonly { readonly label: string; readonly title: string }[]
 
 const canDecreaseText = computed((): boolean => a11y.textScale !== 'default')
 const canIncreaseText = computed((): boolean => a11y.textScale !== 'xl')
-
-function toggleLanguage(): void {
-  isLanguageOpen.value = !isLanguageOpen.value
-}
 </script>
 
 <template>
@@ -83,32 +78,6 @@ function toggleLanguage(): void {
       >
         High Contrast
       </button>
-
-      <div class="relative">
-        <button
-          type="button"
-          :class="chipClass"
-          :aria-expanded="isLanguageOpen"
-          aria-controls="language-menu"
-          @click="toggleLanguage"
-        >
-          Language
-        </button>
-        <div
-          v-if="isLanguageOpen"
-          id="language-menu"
-          class="absolute left-0 z-50 mt-1 w-56 rounded border border-border-default bg-surface p-3 shadow-card"
-        >
-          <p class="text-xs font-medium text-text-default">English (current)</p>
-          <router-link
-            to="/accessibility-statement"
-            class="mt-2 block text-xs text-brand-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            @click="isLanguageOpen = false"
-          >
-            Other languages and Easy Read
-          </router-link>
-        </div>
-      </div>
 
       <button
         type="button"

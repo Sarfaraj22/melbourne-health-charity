@@ -48,8 +48,10 @@ const {
   ariaSortFor,
 } = useAdminDataTable<AdminEvent>({
   rows: (): readonly AdminEvent[] => props.events,
-  searchFields: ['title', 'slug', 'date', 'time', 'location', 'status'],
+  searchFields: ['title', 'date', 'status'],
   pageSize: 10,
+  defaultSortKey: 'date',
+  defaultSortDirection: 'desc',
   getSortValue: eventSortValue,
 })
 
@@ -84,7 +86,7 @@ function sortIndicator(key: string): string {
   if (order === 'descending') {
     return '▼'
   }
-  return ''
+  return '↕'
 }
 </script>
 
@@ -119,7 +121,7 @@ function sortIndicator(key: string): string {
           id="admin-event-search"
           type="search"
           :value="searchQuery"
-          placeholder="Search by title, slug, date, time, location, or status"
+          placeholder="Search by title, date, or status"
           class="w-full max-w-md rounded border border-border-strong bg-surface px-3 py-2.5 text-sm text-text-default placeholder:text-text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
           @input="handleSearchInput"
         />

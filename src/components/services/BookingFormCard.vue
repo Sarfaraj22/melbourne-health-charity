@@ -133,7 +133,9 @@ function handleAccessibilityInput(event: Event): void {
         {{ errorMessage }}
       </p>
       <div class="flex flex-col gap-1.5">
-        <label for="booking-name" class="text-xs font-medium text-text-subtle">Name</label>
+        <label for="booking-name" class="text-xs font-medium text-text-subtle">
+          Name (required)
+        </label>
         <input
           id="booking-name"
           type="text"
@@ -151,7 +153,9 @@ function handleAccessibilityInput(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="booking-service" class="text-xs font-medium text-text-subtle">Service</label>
+        <label for="booking-service" class="text-xs font-medium text-text-subtle">
+          Service (required)
+        </label>
         <select
           id="booking-service"
           required
@@ -203,7 +207,7 @@ function handleAccessibilityInput(event: Event): void {
 
       <div class="flex flex-col gap-1.5">
         <label for="booking-support-type" class="text-xs font-medium text-text-subtle">
-          Support Type
+          Support Type (required)
         </label>
         <select
           id="booking-support-type"
@@ -231,7 +235,7 @@ function handleAccessibilityInput(event: Event): void {
 
       <div class="flex flex-col gap-1.5">
         <label for="booking-accessibility" class="text-xs font-medium text-text-subtle">
-          Accessibility Requirements
+          Accessibility Requirements (optional)
         </label>
         <textarea
           id="booking-accessibility"

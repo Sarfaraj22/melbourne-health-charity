@@ -37,7 +37,9 @@ const isSuccess = computed<boolean>(() => props.status === 'success')
 <template>
   <form class="flex flex-col gap-5" novalidate @submit.prevent="emit('submit')">
     <div class="flex flex-col gap-1.5">
-      <label for="event-title" class="text-sm font-medium text-text-default">Title</label>
+      <label for="event-title" class="text-sm font-medium text-text-default"
+        >Title (required)</label
+      >
       <input
         id="event-title"
         type="text"

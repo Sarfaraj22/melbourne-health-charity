@@ -152,7 +152,9 @@ function handleMessageInput(event: Event): void {
           {{ errorMessage }}
         </p>
         <div class="flex flex-col gap-1.5">
-          <label for="volunteer-name" class="text-xs font-medium text-text-subtle">Name</label>
+          <label for="volunteer-name" class="text-xs font-medium text-text-subtle">
+            Name (required)
+          </label>
           <input
             id="volunteer-name"
             type="text"
@@ -170,7 +172,9 @@ function handleMessageInput(event: Event): void {
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <label for="volunteer-email" class="text-xs font-medium text-text-subtle">Email</label>
+          <label for="volunteer-email" class="text-xs font-medium text-text-subtle">
+            Email (required)
+          </label>
           <input
             id="volunteer-email"
             type="email"
@@ -188,7 +192,9 @@ function handleMessageInput(event: Event): void {
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <label for="volunteer-phone" class="text-xs font-medium text-text-subtle">Phone</label>
+          <label for="volunteer-phone" class="text-xs font-medium text-text-subtle">
+            Phone (required)
+          </label>
           <input
             id="volunteer-phone"
             type="tel"
@@ -207,7 +213,7 @@ function handleMessageInput(event: Event): void {
 
         <div class="flex flex-col gap-1.5">
           <label for="volunteer-address" class="text-xs font-medium text-text-subtle"
-            >Address</label
+            >Address (required)</label
           >
           <input
             id="volunteer-address"
@@ -260,7 +266,7 @@ function handleMessageInput(event: Event): void {
 
         <div class="flex flex-col gap-1.5">
           <label for="volunteer-availability" class="text-xs font-medium text-text-subtle">
-            Availability
+            Availability (required)
           </label>
           <select
             id="volunteer-availability"
