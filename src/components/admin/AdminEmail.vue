@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AdminBulkEmail from '@/components/admin/AdminBulkEmail.vue'
+import AdminEmailAttachments from '@/components/admin/AdminEmailAttachments.vue'
+import { useEmailAttachments } from '@/composables/useEmailAttachments'
 import { sendDirectEmail } from '@/services/firebase/functions.service'
 import type { AdminContactEnquiry, AdminEmailRecord, AdminVolunteer } from '@/types/admin'
 import { assertNever } from '@/utils/assertNever'
@@ -26,6 +28,8 @@ const errorMessage = ref<string>('')
 const replyByContactId = ref<string>('')
 const replySubject = ref<string>('')
 const replyBody = ref<string>('')
+const replyEmailId = ref<string>('')
+const attachments = useEmailAttachments()
 
 const sortedEmails = computed<readonly AdminEmailRecord[]>(() =>
   props.emails.slice().sort((left, right) => right.createdAt - left.createdAt),
@@ -66,16 +70,23 @@ async function handleCompose(): Promise<void> {
     errorMessage.value = 'Please enter a recipient, subject, and message.'
     return
   }
+  if (attachments.errorMessage.length > 0) {
+    status.value = 'error'
+    errorMessage.value = attachments.errorMessage
+    return
+  }
   try {
     await sendDirectEmail({
       to: toAddress.value.trim(),
       subject: subject.value.trim(),
       body: body.value.trim(),
       contactId: '',
+      attachments: await attachments.toPayload(),
     })
     toAddress.value = ''
     subject.value = ''
     body.value = ''
+    attachments.clear()
     status.value = 'success'
   } catch (error) {
     status.value = 'error'
@@ -89,6 +100,80 @@ function startContactReply(contact: AdminContactEnquiry): void {
   replyBody.value = ''
   status.value = 'idle'
   errorMessage.value = ''
+  attachments.clear()
+}
+
+function startInboxReply(email: AdminEmailRecord): void {
+  replyEmailId.value = email.id
+  toAddress.value = email.folder === 'inbox' ? email.fromAddress : email.to
+  subject.value = email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`
+  body.value = ''
+  status.value = 'idle'
+  errorMessage.value = ''
+  attachments.clear()
+}
+
+function cancelInboxReply(): void {
+  replyEmailId.value = ''
+  toAddress.value = ''
+  subject.value = ''
+  body.value = ''
+  status.value = 'idle'
+  errorMessage.value = ''
+  attachments.clear()
+}
+
+function cancelContactReply(): void {
+  replyByContactId.value = ''
+  replySubject.value = ''
+  replyBody.value = ''
+  status.value = 'idle'
+  errorMessage.value = ''
+  attachments.clear()
+}
+
+function cancelCompose(): void {
+  toAddress.value = ''
+  subject.value = ''
+  body.value = ''
+  status.value = 'idle'
+  errorMessage.value = ''
+  attachments.clear()
+  tab.value = 'inbox'
+}
+
+async function handleInboxReply(email: AdminEmailRecord): Promise<void> {
+  status.value = 'submitting'
+  errorMessage.value = ''
+  if (
+    toAddress.value.trim().length === 0 ||
+    subject.value.trim().length === 0 ||
+    body.value.trim().length === 0
+  ) {
+    status.value = 'error'
+    errorMessage.value = 'Please enter a recipient, subject, and message.'
+    return
+  }
+  if (attachments.errorMessage.length > 0) {
+    status.value = 'error'
+    errorMessage.value = attachments.errorMessage
+    return
+  }
+  try {
+    await sendDirectEmail({
+      to: toAddress.value.trim(),
+      subject: subject.value.trim(),
+      body: body.value.trim(),
+      contactId: email.contactId,
+      attachments: await attachments.toPayload(),
+    })
+    replyEmailId.value = ''
+    attachments.clear()
+    status.value = 'success'
+  } catch (error) {
+    status.value = 'error'
+    errorMessage.value = error instanceof Error ? error.message : 'Unable to send this reply.'
+  }
 }
 
 async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
@@ -99,14 +184,21 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
     errorMessage.value = 'Please enter a subject and message.'
     return
   }
+  if (attachments.errorMessage.length > 0) {
+    status.value = 'error'
+    errorMessage.value = attachments.errorMessage
+    return
+  }
   try {
     await sendDirectEmail({
       to: contact.email,
       subject: replySubject.value.trim(),
       body: replyBody.value.trim(),
       contactId: contact.id,
+      attachments: await attachments.toPayload(),
     })
     replyByContactId.value = ''
+    attachments.clear()
     status.value = 'success'
   } catch (error) {
     status.value = 'error'
@@ -150,7 +242,7 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
           :variant="tab === 'contact' ? 'primary' : 'secondary'"
           @click="tab = 'contact'"
         >
-          Contact
+          Contact form inquiries
         </AppButton>
       </div>
 
@@ -162,7 +254,7 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
           v-else
           class="flex flex-col divide-y divide-border-default rounded-md border border-border-default"
         >
-          <li v-for="email in sortedEmails" :key="email.id" class="flex flex-col gap-1 p-4">
+          <li v-for="email in sortedEmails" :key="email.id" class="flex flex-col gap-2 p-4">
             <p class="text-sm font-bold text-text-default">{{ email.subject }}</p>
             <p class="text-xs text-text-subtle">
               {{ folderLabel(email.folder) }} · {{ sourceLabel(email.source) }} ·
@@ -170,6 +262,99 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
             </p>
             <p class="text-sm text-text-muted">To {{ email.to }} · From {{ email.fromAddress }}</p>
             <p class="text-sm text-text-default">{{ email.body }}</p>
+            <p v-if="email.attachmentNames.length > 0" class="text-xs text-text-subtle">
+              Attachments: {{ email.attachmentNames.join(', ') }}
+            </p>
+            <AppButton
+              v-if="replyEmailId !== email.id"
+              type="button"
+              variant="secondary"
+              size="xs"
+              class="self-end"
+              @click="startInboxReply(email)"
+            >
+              Reply
+            </AppButton>
+            <form
+              v-else
+              class="flex flex-col gap-3"
+              novalidate
+              @submit.prevent="handleInboxReply(email)"
+            >
+              <div class="flex flex-col gap-1.5">
+                <label
+                  :for="`inbox-reply-to-${email.id}`"
+                  class="text-sm font-medium text-text-default"
+                >
+                  To <span class="font-normal text-text-subtle">(required)</span>
+                </label>
+                <input
+                  :id="`inbox-reply-to-${email.id}`"
+                  v-model="toAddress"
+                  type="email"
+                  required
+                  aria-required="true"
+                  class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  :for="`inbox-reply-subject-${email.id}`"
+                  class="text-sm font-medium text-text-default"
+                >
+                  Subject <span class="font-normal text-text-subtle">(required)</span>
+                </label>
+                <input
+                  :id="`inbox-reply-subject-${email.id}`"
+                  v-model="subject"
+                  type="text"
+                  required
+                  aria-required="true"
+                  class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  :for="`inbox-reply-body-${email.id}`"
+                  class="text-sm font-medium text-text-default"
+                >
+                  Message <span class="font-normal text-text-subtle">(required)</span>
+                </label>
+                <textarea
+                  :id="`inbox-reply-body-${email.id}`"
+                  v-model="body"
+                  rows="4"
+                  required
+                  aria-required="true"
+                  class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                />
+              </div>
+              <AdminEmailAttachments
+                :field-id="`inbox-reply-files-${email.id}`"
+                :files="attachments.files"
+                :error-message="attachments.errorMessage"
+                :accept="attachments.accept"
+                :hint="attachments.hint"
+                @add="attachments.addFiles"
+                @remove="attachments.removeFile"
+              />
+              <p v-if="status === 'error'" class="text-sm text-brand-donate" role="alert">
+                {{ errorMessage }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <AppButton type="submit" :disabled="status === 'submitting'">
+                  {{ status === 'submitting' ? 'Sending...' : 'Send reply' }}
+                </AppButton>
+                <AppButton
+                  type="button"
+                  variant="secondary"
+                  :disabled="status === 'submitting'"
+                  @click="cancelInboxReply"
+                >
+                  Cancel
+                </AppButton>
+              </div>
+            </form>
           </li>
         </ul>
       </div>
@@ -214,18 +399,37 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
             class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
           />
         </div>
+        <AdminEmailAttachments
+          field-id="direct-email-files"
+          :files="attachments.files"
+          :error-message="attachments.errorMessage"
+          :accept="attachments.accept"
+          :hint="attachments.hint"
+          @add="attachments.addFiles"
+          @remove="attachments.removeFile"
+        />
         <p v-if="status === 'error'" class="text-sm text-brand-donate" role="alert">
           {{ errorMessage }}
         </p>
         <p v-if="status === 'success'" class="text-sm text-status-success" role="status">
           Email sent.
         </p>
-        <AppButton type="submit" :disabled="status === 'submitting'">
-          {{ status === 'submitting' ? 'Sending...' : 'Send email' }}
-        </AppButton>
+        <div class="flex flex-wrap gap-2">
+          <AppButton type="submit" :disabled="status === 'submitting'">
+            {{ status === 'submitting' ? 'Sending...' : 'Send email' }}
+          </AppButton>
+          <AppButton
+            type="button"
+            variant="secondary"
+            :disabled="status === 'submitting'"
+            @click="cancelCompose"
+          >
+            Cancel
+          </AppButton>
+        </div>
       </form>
 
-      <AdminBulkEmail v-else-if="tab === 'bulk'" :volunteers="volunteers" />
+      <AdminBulkEmail v-else-if="tab === 'bulk'" :volunteers="volunteers" @cancel="tab = 'inbox'" />
 
       <div v-else class="flex flex-col gap-3">
         <p v-if="sortedContacts.length === 0" class="text-sm text-text-muted">
@@ -249,7 +453,8 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
               v-if="replyByContactId !== contact.id"
               type="button"
               variant="secondary"
-              size="sm"
+              size="xs"
+              class="self-end"
               @click="startContactReply(contact)"
             >
               Reply
@@ -290,12 +495,31 @@ async function handleContactReply(contact: AdminContactEnquiry): Promise<void> {
                   class="rounded-md border border-border-strong bg-surface px-4 py-2.5 text-base text-text-default focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                 />
               </div>
+              <AdminEmailAttachments
+                :field-id="`contact-reply-files-${contact.id}`"
+                :files="attachments.files"
+                :error-message="attachments.errorMessage"
+                :accept="attachments.accept"
+                :hint="attachments.hint"
+                @add="attachments.addFiles"
+                @remove="attachments.removeFile"
+              />
               <p v-if="status === 'error'" class="text-sm text-brand-donate" role="alert">
                 {{ errorMessage }}
               </p>
-              <AppButton type="submit" :disabled="status === 'submitting'">
-                {{ status === 'submitting' ? 'Sending...' : 'Send reply' }}
-              </AppButton>
+              <div class="flex flex-wrap gap-2">
+                <AppButton type="submit" :disabled="status === 'submitting'">
+                  {{ status === 'submitting' ? 'Sending...' : 'Send reply' }}
+                </AppButton>
+                <AppButton
+                  type="button"
+                  variant="secondary"
+                  :disabled="status === 'submitting'"
+                  @click="cancelContactReply"
+                >
+                  Cancel
+                </AppButton>
+              </div>
             </form>
           </li>
         </ul>

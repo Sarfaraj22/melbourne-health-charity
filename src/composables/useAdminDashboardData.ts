@@ -11,6 +11,7 @@ import {
   subscribeVolunteerApplications,
   subscribeVolunteerHours,
   subscribeVolunteers,
+  subscribeAuditLogs,
   type WithId,
 } from '@/services/firebase/firestore.service'
 import type {
@@ -28,6 +29,7 @@ import type {
   AdminReportMetric,
   AdminVolunteer,
   AdminVolunteerApplication,
+  AdminAuditLog,
 } from '@/types/admin'
 import type {
   ContactMessageDoc,
@@ -40,6 +42,7 @@ import type {
   VolunteerApplicationDoc,
   VolunteerHoursDoc,
   VolunteerRecordDoc,
+  AuditLogDoc,
 } from '@/types/firestore'
 
 export interface UseAdminDashboardDataReturn {
@@ -154,6 +157,8 @@ function mapProfile(record: WithId<ProfileDoc>): AdminProfile {
     displayName: record.data.displayName,
     email: record.data.email,
     role: record.data.role,
+    disabled: record.data.disabled,
+    createdAt: record.data.createdAt,
   }
 }
 
@@ -181,6 +186,7 @@ function mapEmail(record: WithId<EmailDoc>): AdminEmailRecord {
     folder: record.data.folder,
     threadId: record.data.threadId,
     contactId: record.data.contactId,
+    attachmentNames: record.data.attachmentNames,
     createdAt: record.data.createdAt,
   }
 }
@@ -199,6 +205,19 @@ function mapContact(record: WithId<ContactMessageDoc>): AdminContactEnquiry {
     return base
   }
   return { ...base, repliedAt: record.data.repliedAt }
+}
+
+function mapAudit(record: WithId<AuditLogDoc>): AdminAuditLog {
+  return {
+    id: record.id,
+    actorUid: record.data.actorUid,
+    actorEmail: record.data.actorEmail,
+    action: record.data.action,
+    collection: record.data.collection,
+    documentId: record.data.documentId,
+    summary: record.data.summary,
+    createdAt: record.data.createdAt,
+  }
 }
 
 function mapInbox(record: WithId<InboxMessageDoc>): AdminInboxThread {
@@ -288,6 +307,7 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
   const liveChats = ref<readonly AdminLiveChatThread[]>([])
   const emails = ref<readonly AdminEmailRecord[]>([])
   const contacts = ref<readonly AdminContactEnquiry[]>([])
+  const auditLogs = ref<readonly AdminAuditLog[]>([])
   const openEnquiries = ref<number>(0)
 
   let unsubVolunteers: (() => void) | undefined
@@ -300,6 +320,7 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
   let unsubLiveChats: (() => void) | undefined
   let unsubEmails: (() => void) | undefined
   let unsubContacts: (() => void) | undefined
+  let unsubAuditLogs: (() => void) | undefined
 
   function handleError(message: string): void {
     error.value = message
@@ -413,6 +434,17 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
       () => handleError('Unable to load contact messages.'),
     )
 
+    unsubAuditLogs = subscribeAuditLogs(
+      (records) => {
+        auditLogs.value = records
+          .slice()
+          .sort((left, right) => right.data.createdAt - left.data.createdAt)
+          .slice(0, 20)
+          .map(mapAudit)
+      },
+      () => handleError('Unable to load audit logs.'),
+    )
+
     void countContactMessages()
       .then((count) => {
         openEnquiries.value = count
@@ -431,6 +463,7 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
     unsubLiveChats?.()
     unsubEmails?.()
     unsubContacts?.()
+    unsubAuditLogs?.()
   })
 
   const kpiCards = computed<readonly AdminKpiCard[]>(() => {
@@ -479,6 +512,7 @@ export function useAdminDashboardData(): UseAdminDashboardDataReturn {
     liveChats: liveChats.value,
     emails: emails.value,
     contacts: contacts.value,
+    auditLogs: auditLogs.value,
     complianceFeatures,
   }))
 

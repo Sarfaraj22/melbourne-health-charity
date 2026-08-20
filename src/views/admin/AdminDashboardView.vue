@@ -7,11 +7,13 @@ import AppBreadcrumb from '@/components/ui/AppBreadcrumb.vue'
 import AdminKpiCards from '@/components/admin/AdminKpiCards.vue'
 import AdminVolunteerTable from '@/components/admin/AdminVolunteerTable.vue'
 import AdminVolunteerApplicationsTable from '@/components/admin/AdminVolunteerApplicationsTable.vue'
+import AdminUserTable from '@/components/admin/AdminUserTable.vue'
 import AdminEmail from '@/components/admin/AdminEmail.vue'
 import AdminEventTable from '@/components/admin/AdminEventTable.vue'
 import AdminReportsAnalytics from '@/components/admin/AdminReportsAnalytics.vue'
 import AdminLiveChat from '@/components/admin/AdminLiveChat.vue'
 import AdminMessagesEnquiries from '@/components/admin/AdminMessagesEnquiries.vue'
+import AdminAuditTrail from '@/components/admin/AdminAuditTrail.vue'
 import AdminSecurityCompliance from '@/components/admin/AdminSecurityCompliance.vue'
 import { useAdminDashboardData } from '@/composables/useAdminDashboardData'
 import { useAuthStore } from '@/stores/auth.store'
@@ -105,6 +107,7 @@ async function handleDeleteEvent(id: string): Promise<void> {
       <AdminKpiCards :cards="data.kpiCards" />
       <AdminVolunteerTable :volunteers="data.volunteers" @delete="handleDeleteVolunteer" />
       <AdminVolunteerApplicationsTable :applications="data.applications" />
+      <AdminUserTable :profiles="data.profiles" />
       <AdminEmail :emails="data.emails" :contacts="data.contacts" :volunteers="data.volunteers" />
       <section class="bg-surface px-5 py-6 sm:px-8" aria-labelledby="admin-event-calendar-heading">
         <div class="mx-auto flex max-w-container flex-col gap-4">
@@ -122,6 +125,7 @@ async function handleDeleteEvent(id: string): Promise<void> {
       <AdminReportsAnalytics :chart-bars="data.chartBars" :metrics="data.reportMetrics" />
       <AdminLiveChat :chats="data.liveChats" />
       <AdminMessagesEnquiries :profiles="data.profiles" />
+      <AdminAuditTrail :audit-logs="data.auditLogs" />
       <AdminSecurityCompliance :features="data.complianceFeatures" />
     </div>
   </div>

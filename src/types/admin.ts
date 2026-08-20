@@ -45,6 +45,8 @@ export interface AdminProfile {
   readonly displayName: string
   readonly email: string
   readonly role: 'admin' | 'user' | 'volunteer'
+  readonly disabled: boolean
+  readonly createdAt: number
 }
 
 export interface AdminEvent {
@@ -131,6 +133,18 @@ export interface AdminEmailRecord {
   readonly folder: 'inbox' | 'sent'
   readonly threadId: string
   readonly contactId: string
+  readonly attachmentNames: readonly string[]
+  readonly createdAt: number
+}
+
+export interface AdminAuditLog {
+  readonly id: string
+  readonly actorUid: string
+  readonly actorEmail: string
+  readonly action: 'create' | 'update' | 'delete'
+  readonly collection: string
+  readonly documentId: string
+  readonly summary: string
   readonly createdAt: number
 }
 
@@ -148,6 +162,7 @@ export interface AdminDashboardData {
   readonly liveChats: readonly AdminLiveChatThread[]
   readonly emails: readonly AdminEmailRecord[]
   readonly contacts: readonly AdminContactEnquiry[]
+  readonly auditLogs: readonly AdminAuditLog[]
   readonly complianceFeatures: readonly AdminComplianceFeature[]
 }
 
