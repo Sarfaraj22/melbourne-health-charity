@@ -108,7 +108,6 @@ export function downloadVolunteerPdf(rows: readonly VolunteerExportRow[]): void 
 
 export interface EventExportRow {
   readonly title: string
-  readonly slug: string
   readonly date: string
   readonly time: string
   readonly location: string
@@ -117,8 +116,8 @@ export interface EventExportRow {
 
 export function eventRowsToCsv(rows: readonly EventExportRow[]): string {
   return rowsToCsv(
-    ['Title', 'Slug', 'Date', 'Time', 'Location', 'Status'],
-    rows.map((row) => [row.title, row.slug, row.date, row.time, row.location, row.status]),
+    ['Title', 'Date', 'Time', 'Location', 'Status'],
+    rows.map((row) => [row.title, row.date, row.time, row.location, row.status]),
   )
 }
 
@@ -131,13 +130,50 @@ export function downloadEventPdf(rows: readonly EventExportRow[]): void {
     'events.pdf',
     'Event list',
     [
-      { heading: 'Title', x: 14, width: 52 },
-      { heading: 'Slug', x: 68, width: 40 },
-      { heading: 'Date', x: 110, width: 28 },
-      { heading: 'Time', x: 140, width: 32 },
-      { heading: 'Location', x: 174, width: 58 },
-      { heading: 'Status', x: 236, width: 28 },
+      { heading: 'Title', x: 14, width: 70 },
+      { heading: 'Date', x: 86, width: 32 },
+      { heading: 'Time', x: 120, width: 36 },
+      { heading: 'Location', x: 158, width: 70 },
+      { heading: 'Status', x: 230, width: 28 },
     ],
-    rows.map((row) => [row.title, row.slug, row.date, row.time, row.location, row.status]),
+    rows.map((row) => [row.title, row.date, row.time, row.location, row.status]),
   )
+}
+
+export interface OperationsReportData {
+  readonly title: string
+  readonly generatedOn: string
+  readonly metrics: readonly { readonly value: string; readonly caption: string }[]
+  readonly monthHours: readonly { readonly label: string; readonly hours: number }[]
+}
+
+export function downloadOperationsReportPdf(data: OperationsReportData): void {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  doc.setFontSize(16)
+  doc.text(data.title, 14, 18)
+  doc.setFontSize(10)
+  doc.text(`Generated ${data.generatedOn}`, 14, 26)
+  let y = 38
+  doc.setFontSize(12)
+  doc.text('Key metrics', 14, y)
+  y += 8
+  doc.setFontSize(10)
+  for (const metric of data.metrics) {
+    doc.text(`${metric.value} — ${metric.caption}`, 14, y)
+    y += 7
+  }
+  y += 6
+  doc.setFontSize(12)
+  doc.text('Volunteer hours by month', 14, y)
+  y += 8
+  doc.setFontSize(10)
+  for (const row of data.monthHours) {
+    if (y > 280) {
+      doc.addPage()
+      y = 16
+    }
+    doc.text(`${row.label}: ${String(row.hours)} hours`, 14, y)
+    y += 7
+  }
+  doc.save('operations-report.pdf')
 }

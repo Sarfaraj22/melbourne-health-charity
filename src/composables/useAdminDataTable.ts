@@ -6,6 +6,8 @@ export interface UseAdminDataTableOptions<T> {
   readonly rows: () => readonly T[]
   readonly searchFields: readonly (keyof T)[]
   readonly pageSize?: number
+  readonly defaultSortKey?: string
+  readonly defaultSortDirection?: AdminTableSortDirection
   readonly getSortValue: (row: T, key: string) => string | number
 }
 
@@ -48,8 +50,8 @@ export function useAdminDataTable<T>(
 ): UseAdminDataTableReturn<T> {
   const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
   const searchQuery = ref<string>('')
-  const sortKey = ref<string>('')
-  const sortDirection = ref<AdminTableSortDirection>('asc')
+  const sortKey = ref<string>(options.defaultSortKey ?? '')
+  const sortDirection = ref<AdminTableSortDirection>(options.defaultSortDirection ?? 'asc')
   const page = ref<number>(1)
 
   const filteredRows = computed((): readonly T[] => {

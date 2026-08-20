@@ -42,7 +42,9 @@ function handleAddressInput(event: Event): void {
 <template>
   <form class="flex flex-col gap-5" novalidate @submit.prevent="emit('submit')">
     <div class="flex flex-col gap-1.5">
-      <label for="volunteer-name" class="text-sm font-medium text-text-default">Name</label>
+      <label for="volunteer-name" class="text-sm font-medium text-text-default">
+        Name (required)
+      </label>
       <input
         id="volunteer-name"
         type="text"
@@ -56,7 +58,9 @@ function handleAddressInput(event: Event): void {
     </div>
 
     <div class="flex flex-col gap-1.5">
-      <label for="volunteer-email" class="text-sm font-medium text-text-default">Email</label>
+      <label for="volunteer-email" class="text-sm font-medium text-text-default">
+        Email (required)
+      </label>
       <input
         id="volunteer-email"
         type="email"
