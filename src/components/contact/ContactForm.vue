@@ -112,12 +112,15 @@ function handleMessageInput(event: Event): void {
         {{ errorMessage }}
       </p>
       <div class="flex flex-col gap-1.5">
-        <label for="contact-name" class="text-xs font-medium text-text-subtle">Name</label>
+        <label for="contact-name" class="text-xs font-medium text-text-subtle">
+          Name (required)
+        </label>
         <input
           id="contact-name"
           type="text"
           autocomplete="name"
           required
+          aria-required="true"
           :value="form.name"
           :aria-invalid="errors.name ? true : undefined"
           :aria-describedby="nameDescribedBy"
@@ -130,12 +133,15 @@ function handleMessageInput(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="contact-email" class="text-xs font-medium text-text-subtle">Email</label>
+        <label for="contact-email" class="text-xs font-medium text-text-subtle">
+          Email (required)
+        </label>
         <input
           id="contact-email"
           type="email"
           autocomplete="email"
           required
+          aria-required="true"
           :value="form.email"
           :aria-invalid="errors.email ? true : undefined"
           :aria-describedby="emailDescribedBy"
@@ -167,7 +173,9 @@ function handleMessageInput(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="contact-subject" class="text-xs font-medium text-text-subtle">Subject</label>
+        <label for="contact-subject" class="text-xs font-medium text-text-subtle">
+          Subject (required)
+        </label>
         <input
           id="contact-subject"
           type="text"
@@ -189,7 +197,9 @@ function handleMessageInput(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="contact-message" class="text-xs font-medium text-text-subtle">Message</label>
+        <label for="contact-message" class="text-xs font-medium text-text-subtle">
+          Message (required)
+        </label>
         <textarea
           id="contact-message"
           :value="form.message"

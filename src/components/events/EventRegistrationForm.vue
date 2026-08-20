@@ -118,7 +118,9 @@ function handleOptInChange(event: Event): void {
         {{ errorMessage }}
       </p>
       <div class="flex flex-col gap-1.5">
-        <label for="event-reg-name" class="text-xs font-medium text-text-subtle">Name</label>
+        <label for="event-reg-name" class="text-xs font-medium text-text-subtle">
+          Name (required)
+        </label>
         <input
           id="event-reg-name"
           type="text"
@@ -136,7 +138,9 @@ function handleOptInChange(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="event-reg-email" class="text-xs font-medium text-text-subtle">Email</label>
+        <label for="event-reg-email" class="text-xs font-medium text-text-subtle">
+          Email (required)
+        </label>
         <input
           id="event-reg-email"
           type="email"
@@ -154,7 +158,9 @@ function handleOptInChange(event: Event): void {
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label for="event-reg-phone" class="text-xs font-medium text-text-subtle">Phone</label>
+        <label for="event-reg-phone" class="text-xs font-medium text-text-subtle">
+          Phone (required)
+        </label>
         <input
           id="event-reg-phone"
           type="tel"
@@ -173,7 +179,7 @@ function handleOptInChange(event: Event): void {
 
       <div class="flex flex-col gap-1.5">
         <label for="event-reg-attendees" class="text-xs font-medium text-text-subtle">
-          Number of attendees
+          Number of attendees (required)
         </label>
         <input
           id="event-reg-attendees"
@@ -200,7 +206,7 @@ function handleOptInChange(event: Event): void {
 
       <div class="flex flex-col gap-1.5">
         <label for="event-reg-accessibility" class="text-xs font-medium text-text-subtle">
-          Accessibility requirements
+          Accessibility requirements (optional)
         </label>
         <textarea
           id="event-reg-accessibility"

@@ -78,7 +78,9 @@ function handleInput(setter: (value: string) => void, event: Event): void {
             {{ errorMessage }}
           </p>
           <div class="flex flex-col gap-1.5">
-            <label for="assist-name" class="text-xs font-medium text-text-subtle">Name</label>
+            <label for="assist-name" class="text-xs font-medium text-text-subtle">
+              Name (required)
+            </label>
             <input
               id="assist-name"
               type="text"
@@ -95,7 +97,9 @@ function handleInput(setter: (value: string) => void, event: Event): void {
             </p>
           </div>
           <div class="flex flex-col gap-1.5">
-            <label for="assist-email" class="text-xs font-medium text-text-subtle">Email</label>
+            <label for="assist-email" class="text-xs font-medium text-text-subtle">
+              Email (required)
+            </label>
             <input
               id="assist-email"
               type="email"
@@ -131,7 +135,7 @@ function handleInput(setter: (value: string) => void, event: Event): void {
           </div>
           <div class="flex flex-col gap-1.5">
             <label for="assist-need" class="text-xs font-medium text-text-subtle"
-              >What do you need?</label
+              >What do you need? (required)</label
             >
             <input
               id="assist-need"
@@ -148,7 +152,9 @@ function handleInput(setter: (value: string) => void, event: Event): void {
             </p>
           </div>
           <div class="flex flex-col gap-1.5">
-            <label for="assist-message" class="text-xs font-medium text-text-subtle">Message</label>
+            <label for="assist-message" class="text-xs font-medium text-text-subtle">
+              Message (required)
+            </label>
             <textarea
               id="assist-message"
               rows="4"

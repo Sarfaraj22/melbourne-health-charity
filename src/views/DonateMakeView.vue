@@ -187,7 +187,9 @@ function handleMessageInput(event: Event): void {
           </fieldset>
 
           <div class="flex flex-col gap-1.5">
-            <label for="donate-name" class="text-xs font-medium text-text-subtle">Name</label>
+            <label for="donate-name" class="text-xs font-medium text-text-subtle">
+              Name (required)
+            </label>
             <input
               id="donate-name"
               type="text"
@@ -205,7 +207,9 @@ function handleMessageInput(event: Event): void {
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label for="donate-email" class="text-xs font-medium text-text-subtle">Email</label>
+            <label for="donate-email" class="text-xs font-medium text-text-subtle">
+              Email (required)
+            </label>
             <input
               id="donate-email"
               type="email"
