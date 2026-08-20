@@ -33,6 +33,7 @@ export default {
       },
       height: {
         hero: '26.25rem',
+        map: '18rem',
       },
       minHeight: {
         placeholder: '40vh',
