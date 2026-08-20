@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { getServiceDetailBySlug } from '@/composables/useServicesContent'
 import { mapEventRecordToDetail } from '@/composables/useEventsContent'
 import type {
+  DashboardAccessedService,
   DashboardAppointment,
   DashboardMessage,
   DashboardUpcomingEvent,
@@ -31,6 +32,7 @@ export interface UseUserDashboardDataReturn {
   readonly loading: Ref<boolean>
   readonly appointments: ComputedRef<readonly DashboardAppointment[]>
   readonly upcomingAppointment: ComputedRef<DashboardAppointment | undefined>
+  readonly accessedServices: ComputedRef<readonly DashboardAccessedService[]>
   readonly messages: ComputedRef<readonly DashboardMessage[]>
   readonly eventBookings: ComputedRef<readonly DashboardUpcomingEvent[]>
 }
@@ -52,6 +54,7 @@ function toDashboardAppointment(record: WithId<AppointmentDoc>): DashboardAppoin
   return {
     id: record.id,
     service: service === undefined ? record.data.serviceSlug : service.title,
+    serviceSlug: record.data.serviceSlug,
     date: record.data.date,
     time: record.data.time,
     location: service === undefined ? '123 Example Street, Melbourne VIC 3000' : service.location,
@@ -175,10 +178,36 @@ export function useUserDashboardData(): UseUserDashboardDataReturn {
     return bookings
   })
 
+  const accessedServices = computed((): readonly DashboardAccessedService[] => {
+    const today = startOfToday().getTime()
+    const past = appointments.value.filter((appointment) => {
+      const parsed = parseDateDdMmYyyy(appointment.date)
+      return parsed !== undefined && parsed.getTime() < today
+    })
+    const newestFirst = past
+      .slice()
+      .sort((left, right) => appointmentSortValue(right) - appointmentSortValue(left))
+    const seen = new Set<string>()
+    const unique: DashboardAccessedService[] = []
+    for (const appointment of newestFirst) {
+      if (seen.has(appointment.serviceSlug)) {
+        continue
+      }
+      seen.add(appointment.serviceSlug)
+      unique.push({
+        serviceSlug: appointment.serviceSlug,
+        title: appointment.service,
+        appointmentId: appointment.id,
+      })
+    }
+    return unique
+  })
+
   return {
     loading,
     appointments,
     upcomingAppointment,
+    accessedServices,
     messages,
     eventBookings,
   }
